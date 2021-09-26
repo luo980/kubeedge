@@ -95,6 +95,8 @@ type Modules struct {
 	// EdgeStream indicates edgestream module config
 	// +Required
 	EdgeStream *EdgeStream `json:"edgeStream,omitempty"`
+	// DManager DIY
+	DManager *DManager `json:"dManager,omitempty"`
 }
 
 // Edged indicates the config fo edged module
@@ -400,6 +402,14 @@ type DeviceTwin struct {
 	// Enable indicates whether DeviceTwin is enabled,
 	// if set to false (for debugging etc.), skip checking other DeviceTwin configs.
 	// default true
+	Enable bool `json:"enable"`
+}
+
+// DManager DIY module
+type DManager struct {
+	// Enable indicates whether DeviceManager is enabled,
+	// Try to false the DeviceTwin and enable DeviceManager
+	// default false
 	Enable bool `json:"enable"`
 }
 

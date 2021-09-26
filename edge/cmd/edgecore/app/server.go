@@ -3,6 +3,7 @@ package app
 import (
 	"errors"
 	"fmt"
+	"github.com/kubeedge/kubeedge/edge/pkg/dmanager"
 	"os"
 
 	"github.com/mitchellh/go-ps"
@@ -159,4 +160,5 @@ func registerModules(c *v1alpha1.EdgeCoreConfig) {
 	test.Register(c.Modules.DBTest)
 	// Note: Need to put it to the end, and wait for all models to register before executing
 	dbm.InitDBConfig(c.DataBase.DriverName, c.DataBase.AliasName, c.DataBase.DataSource)
+	dmanager.Register(c.Modules.DManager, c.Modules.Edged.HostnameOverride)
 }
