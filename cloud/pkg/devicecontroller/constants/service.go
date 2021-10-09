@@ -12,4 +12,5 @@ const (
 
 	// Group
 	GroupTwin = "twin"
+	GroupDevm = "dmgr"
 )

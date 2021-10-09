@@ -53,7 +53,7 @@ type defaultHandler struct {
 func (*defaultHandler) Filter(message *model.Message) bool {
 	group := message.GetGroup()
 	return group == messagepkg.ResourceGroupName || group == messagepkg.TwinGroupName ||
-		group == messagepkg.FuncGroupName || group == messagepkg.UserGroupName
+		group == messagepkg.FuncGroupName || group == messagepkg.UserGroupName || group == messagepkg.DevmGroupName
 }
 
 func (*defaultHandler) Process(message *model.Message, clientHub clients.Adapter) error {
@@ -68,6 +68,8 @@ func (*defaultHandler) Process(message *model.Message, clientHub clients.Adapter
 		md = modules.MetaGroup
 	case messagepkg.UserGroupName:
 		md = modules.BusGroup
+	case messagepkg.DevmGroupName:
+		md = modules.DMgrGroup
 	}
 
 	isResponse := isSyncResponse(message.GetParentID())

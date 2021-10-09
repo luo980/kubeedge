@@ -1,4 +1,4 @@
-package dmmodule
+package dmservice
 
 import (
 	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmcontext"

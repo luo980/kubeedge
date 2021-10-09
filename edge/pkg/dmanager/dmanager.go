@@ -11,15 +11,17 @@ import (
 )
 
 type DManager struct {
-	DMContexts *dmcontext.DMContext
-	DMModules  map[string]dmmodule.DMModule
-	enable     bool
+	HeartBeatToModule map[string]chan interface{}
+	DMContexts        *dmcontext.DMContext
+	DMModules         map[string]dmmodule.DMModule
+	enable            bool
 }
 
 func newDeviceManager(enable bool) *DManager {
 	return &DManager{
-
-		enable: enable,
+		HeartBeatToModule: make(map[string]chan interface{}),
+		DMModules:         make(map[string]dmmodule.DMModule),
+		enable:            enable,
 	}
 }
 
@@ -47,5 +49,9 @@ func (dm *DManager) Start() {
 	//	klog.Errorf("Start DManager Failed, Sync Sqlite error:%v", err)
 	//	return
 	//}
+	dmcontexts, _ := dmcontext.InitDMContext()
+	dm.DMContexts = dmcontexts
 	klog.Infof("DManager Start Here!")
+	dm.runDeviceManager()
+
 }

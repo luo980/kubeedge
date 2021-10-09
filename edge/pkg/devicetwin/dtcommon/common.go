@@ -92,12 +92,14 @@ const (
 
 	// CommModule communicate module
 	CommModule = "CommModule"
+
 	// DeviceModule device module
 	DeviceModule = "DeviceModule"
 	// MemModule membership module
 	MemModule = "MemModule"
 	// TwinModule twin module
 	TwinModule = "TwinModule"
+
 	// HubModule the name of hub module
 	HubModule = "websocket"
 	// EventHubModule the name of event hub module
