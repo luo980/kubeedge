@@ -330,12 +330,12 @@ func TestAdded(t *testing.T) {
 		Mutex:       &sync.Mutex{},
 		GroupID:     "1",
 	}
-	var d = []dmtype.Device{{
+	var d = []dttype.Device{{
 		ID:    "DeviceA",
 		Name:  "Router",
 		State: "unknown",
 	}}
-	var b = dmtype.BaseMessage{
+	var b = dttype.BaseMessage{
 		EventID: "eventid",
 	}
 	Added(dtc, d, b, true)
@@ -356,14 +356,14 @@ func TestRemoved(t *testing.T) {
 		Mutex:       &sync.Mutex{},
 		GroupID:     "1",
 	}
-	var device dmtype.Device
+	var device dttype.Device
 	dtc.DeviceList.Store("DeviceA", &device)
-	var d = []dmtype.Device{{
+	var d = []dttype.Device{{
 		ID:    "DeviceA",
 		Name:  "Router",
 		State: "unknown",
 	}}
-	var b = dmtype.BaseMessage{
+	var b = dttype.BaseMessage{
 		EventID: "eventid",
 	}
 	Removed(dtc, d, b, true)
