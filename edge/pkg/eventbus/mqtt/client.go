@@ -118,7 +118,7 @@ func OnSubMessageReceived(client MQTT.Client, msg MQTT.Message) {
 	var target string
 	var message *beehiveModel.Message
 	if strings.HasPrefix(msg.Topic(), "$hw/events/device") || strings.HasPrefix(msg.Topic(), "$hw/events/node") {
-		target = modules.TwinGroup
+		target = modules.DMgrGroup
 		resource := base64.URLEncoding.EncodeToString([]byte(msg.Topic()))
 		// routing key will be $hw.<project_id>.events.user.bus.response.cluster.<cluster_id>.node.<node_id>.<base64_topic>
 		message = beehiveModel.NewMessage("").BuildRouter(modules.BusGroup, modules.UserGroup,

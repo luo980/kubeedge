@@ -44,8 +44,9 @@ func InitDMContext() (*DMContext, error) {
 		DeviceList:  &sync.Map{},
 		DeviceMutex: &sync.Map{},
 
-		ModelList:    &sync.Map{},
-		ModelMutex:   &sync.Map{},
+		ModelList:  &sync.Map{},
+		ModelMutex: &sync.Map{},
+
 		AbilityList:  &sync.Map{},
 		AbilityMutex: &sync.Map{},
 
@@ -61,6 +62,17 @@ func (dmc *DMContext) CommTo(dmcName string, content interface{}) error {
 		return nil
 	}
 	return errors.New("Not found chan to communicate")
+}
+
+//Lock get the lock of the device
+func (dmc *DMContext) Lock(deviceID string) bool {
+	deviceMutex, ok := dmc.GetMutex(deviceID)
+	if ok {
+		dmc.Mutex.RLock()
+		deviceMutex.Lock()
+		return true
+	}
+	return false
 }
 
 //Unlock remove the lock of the device
@@ -114,4 +126,8 @@ func (dmc *DMContext) IsModelExist(modelID string) bool {
 func (dmc *DMContext) IsAbilityExist(abilityID string) bool {
 	_, ok := dmc.AbilityList.Load(abilityID)
 	return ok
+}
+
+func (dmc *DMContext) HeartBeat(dtmName string, content interface{}) error {
+	return nil
 }

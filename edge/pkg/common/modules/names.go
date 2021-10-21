@@ -14,5 +14,5 @@ const (
 	// EdgeHubModuleName name
 	EdgeHubModuleName = "websocket"
 	// DManagerModuleName name
-	DManagerModuleName = "dmanager"
+	DManagerModuleName = "dmgr"
 )
