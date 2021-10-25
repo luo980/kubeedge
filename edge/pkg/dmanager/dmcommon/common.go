@@ -99,4 +99,13 @@ const (
 	DeviceStateUpdate = "DeviceStateUpdate"
 
 	//Actions to Modules
+
+	// BadRequestCode bad request
+	BadRequestCode = 400
+	// NotFoundCode device not found
+	NotFoundCode = 404
+	// ConflictCode version conflict
+	ConflictCode = 409
+	// InternalErrorCode server internal error
+	InternalErrorCode = 500
 )

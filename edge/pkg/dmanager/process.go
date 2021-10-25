@@ -217,9 +217,7 @@ func initActionModuleMap() {
 	ActionModuleMap[dmcommon.MemDetailResult] = dmcommon.MemModule
 	ActionModuleMap[dmcommon.MemGet] = dmcommon.MemModule
 	ActionModuleMap[dmcommon.MemUpdated] = dmcommon.MemModule
-	ActionModuleMap[dmcommon.TwinGet] = dmcommon.TwinModule
-	ActionModuleMap[dmcommon.TwinUpdate] = dmcommon.TwinModule
-	ActionModuleMap[dmcommon.TwinCloudSync] = dmcommon.TwinModule
+
 	ActionModuleMap[dmcommon.DeviceUpdated] = dmcommon.DeviceModule
 	ActionModuleMap[dmcommon.DeviceStateGet] = dmcommon.DeviceModule
 	ActionModuleMap[dmcommon.DeviceStateUpdate] = dmcommon.DeviceModule

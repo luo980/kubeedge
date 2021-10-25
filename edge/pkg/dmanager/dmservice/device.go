@@ -3,16 +3,19 @@ package dmservice
 import (
 	"errors"
 	"github.com/kubeedge/beehive/pkg/core/model"
-	"github.com/kubeedge/kubeedge/edge/pkg/common/message"
-	"github.com/kubeedge/kubeedge/edge/pkg/devicetwin/dtclient"
-	"github.com/kubeedge/kubeedge/edge/pkg/devicetwin/dtcontext"
-	"github.com/kubeedge/kubeedge/edge/pkg/devicetwin/dttype"
+	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmdatabase"
+
+	"encoding/json"
 	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmcommon"
 	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmcontext"
 	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmtype"
 	"k8s.io/klog/v2"
 	"strings"
+
+	wlog "github.com/sirupsen/logrus"
 )
+
+var log = wlog.New()
 
 type DeviceWorker struct {
 	Worker
@@ -81,6 +84,10 @@ func dealDeviceStateUpdate(context *dmcontext.DMContext, resource string, msg in
 		return nil
 	}
 	device, ok := doc.(*dmtype.Device)
+	log.WithFields(wlog.Fields{
+		"where": "device.go",
+		"what":  device,
+	}).Info("here to debug device")
 
 	// state refers to definition in mappers-go/pkg/common/const.go
 	state := strings.ToLower(updatedDevice.State)
@@ -93,31 +100,31 @@ func dealDeviceStateUpdate(context *dmcontext.DMContext, resource string, msg in
 	return nil
 }
 
-func UpdateDeviceAttr(context *dtcontext.DTContext, deviceID string, attributes map[string]*dttype.MsgAttr, baseMessage dttype.BaseMessage, dealType int) (interface{}, error) {
+func UpdateDeviceAttr(context *dmcontext.DMContext, deviceID string, attributes map[string]*dmtype.MsgAttr, baseMessage dmtype.BaseMessage, dealType int) (interface{}, error) {
 	return nil, nil
 }
 
 //DealMsgAttr get diff,0:update, 1:detail
-func DealMsgAttr(context *dmcontext.DMContext, deviceID string, msgAttrs map[string]*dttype.MsgAttr, dealType int) dttype.DealAttrResult {
+func DealMsgAttr(context *dmcontext.DMContext, deviceID string, msgAttrs map[string]*dmtype.MsgAttr, dealType int) dmtype.DealAttrResult {
 	device, ok := context.GetDevice(deviceID)
 	if !ok {
-
+		klog.Errorf("Can't Get device %v", deviceID)
 	}
 	attrs := device.Attributes
 	if attrs == nil {
-		device.Attributes = make(map[string]*dttype.MsgAttr)
+		device.Attributes = make(map[string]*dmtype.MsgAttr)
 		attrs = device.Attributes
 	}
-	add := make([]dtclient.DeviceAttr, 0)
-	deletes := make([]dtclient.DeviceDelete, 0)
-	update := make([]dtclient.DeviceAttrUpdate, 0)
-	result := make(map[string]*dttype.MsgAttr)
+	add := make([]dmdatabase.Device, 0)
+	deletes := make([]dmdatabase.DeviceDelete, 0)
+	update := make([]dmdatabase.DeviceAttrUpdate, 0)
+	result := make(map[string]*dmtype.MsgAttr)
 
 	for key, msgAttr := range msgAttrs {
 		if attr, exist := attrs[key]; exist {
 			if msgAttr == nil && dealType == 0 {
 				if *attr.Optional {
-					deletes = append(deletes, dtclient.DeviceDelete{DeviceID: deviceID, Name: key})
+					deletes = append(deletes, dmdatabase.DeviceDelete{DeviceID: deviceID, Name: key})
 					result[key] = nil
 					delete(attrs, key)
 				}
@@ -125,7 +132,7 @@ func DealMsgAttr(context *dmcontext.DMContext, deviceID string, msgAttrs map[str
 			}
 			isChange := false
 			cols := make(map[string]interface{})
-			result[key] = &dttype.MsgAttr{}
+			result[key] = &dmtype.MsgAttr{}
 			if strings.Compare(attr.Value, msgAttr.Value) != 0 {
 				attr.Value = msgAttr.Value
 
@@ -139,7 +146,7 @@ func DealMsgAttr(context *dmcontext.DMContext, deviceID string, msgAttrs map[str
 				attrMetaJSON, _ := json.Marshal(attr.Metadata)
 				if strings.Compare(string(msgMetaJSON), string(attrMetaJSON)) != 0 {
 					cols["attr_type"] = msgAttr.Metadata.Type
-					meta := dttype.CopyMsgAttr(msgAttr)
+					meta := dmtype.CopyMsgAttr(msgAttr)
 					attr.Metadata = meta.Metadata
 					msgAttr.Metadata.Type = ""
 					metaJSON, _ := json.Marshal(msgAttr.Metadata)
@@ -159,12 +166,12 @@ func DealMsgAttr(context *dmcontext.DMContext, deviceID string, msgAttrs map[str
 				}
 			}
 			if isChange {
-				update = append(update, dtclient.DeviceAttrUpdate{DeviceID: deviceID, Name: key, Cols: cols})
+				update = append(update, dmdatabase.DeviceAttrUpdate{DeviceID: deviceID, Name: key, Cols: cols})
 			} else {
 				delete(result, key)
 			}
 		} else {
-			deviceAttr := dttype.MsgAttrToDeviceAttr(key, msgAttr)
+			deviceAttr := dmtype.MsgAttrToDeviceAttr(key, msgAttr)
 			deviceAttr.DeviceID = deviceID
 			deviceAttr.Value = msgAttr.Value
 			if msgAttr.Optional != nil {
@@ -187,7 +194,7 @@ func DealMsgAttr(context *dmcontext.DMContext, deviceID string, msgAttrs map[str
 	if dealType > 0 {
 		for key := range attrs {
 			if _, exist := msgAttrs[key]; !exist {
-				deletes = append(deletes, dtclient.DeviceDelete{DeviceID: deviceID, Name: key})
+				deletes = append(deletes, dmdatabase.DeviceDelete{DeviceID: deviceID, Name: key})
 				result[key] = nil
 			}
 		}
@@ -195,5 +202,6 @@ func DealMsgAttr(context *dmcontext.DMContext, deviceID string, msgAttrs map[str
 			delete(attrs, v.Name)
 		}
 	}
-	return dttype.DealAttrResult{Add: add, Delete: deletes, Update: update, Result: result, Err: nil}
+	//return dmtype.DealAttrResult{Add: add, Delete: deletes, Update: update, Result: result, Err: nil}
+	return dmtype.DealAttrResult{}
 }

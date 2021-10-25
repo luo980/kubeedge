@@ -1,5 +1,9 @@
 package dmtype
 
+import (
+	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmdatabase"
+)
+
 //BaseMessage the base struct of event message
 type BaseMessage struct {
 	EventID   string `json:"event_id"`
@@ -54,4 +58,40 @@ type TwinVersion struct {
 //ValueMetadata the meta of value
 type ValueMetadata struct {
 	Timestamp int64 `json:"timestamp,omitempty"`
+}
+
+//Parameter container para
+type Parameter struct {
+	EventID string
+	Code    int
+	Reason  string
+}
+
+// Result the struct of Result for sending
+type Result struct {
+	BaseMessage
+	Code   int    `json:"code,omitempty"`
+	Reason string `json:"reason,omitempty"`
+}
+
+//MembershipUpdate the struct of membership update
+type MembershipUpdate struct {
+	BaseMessage
+	AddDevices    []Device `json:"added_devices"`
+	RemoveDevices []Device `json:"removed_devices"`
+}
+
+//MembershipDetail the struct of membership detail
+type MembershipDetail struct {
+	BaseMessage
+	Devices []Device `json:"devices"`
+}
+
+//DealAttrResult the result of dealing attr
+type DealAttrResult struct {
+	Add    []dmdatabase.Device
+	Delete []dmdatabase.DeviceDelete
+	Update []dmdatabase.DeviceAttrUpdate
+	Result map[string]*MsgAttr
+	Err    error
 }

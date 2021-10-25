@@ -3,8 +3,11 @@ package dmcontext
 import (
 	"context"
 	"errors"
-	"github.com/kubeedge/kubeedge/edge/pkg/devicetwin/dtcommon"
+	"github.com/kubeedge/beehive/pkg/core/model"
+	"github.com/kubeedge/kubeedge/edge/pkg/common/modules"
 	dmanagerconfig "github.com/kubeedge/kubeedge/edge/pkg/dmanager/config"
+	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmcommon"
+	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmtype"
 	"k8s.io/klog/v2"
 	"sync"
 )
@@ -51,8 +54,20 @@ func InitDMContext() (*DMContext, error) {
 		AbilityMutex: &sync.Map{},
 
 		Mutex: &sync.RWMutex{},
-		State: dtcommon.Disconnected,
+		State: dmcommon.Disconnected,
 	}, nil
+}
+
+//GetDevice get device
+func (dmc *DMContext) GetDevice(deviceID string) (*dmtype.Device, bool) {
+	d, ok := dmc.DeviceList.Load(deviceID)
+	if ok {
+		if device, isDevice := d.(*dmtype.Device); isDevice {
+			return device, true
+		}
+		return nil, false
+	}
+	return nil, false
 }
 
 //CommTo communicate
@@ -128,6 +143,24 @@ func (dmc *DMContext) IsAbilityExist(abilityID string) bool {
 	return ok
 }
 
-func (dmc *DMContext) HeartBeat(dtmName string, content interface{}) error {
+func (dmc *DMContext) HeartBeat(dmmName string, content interface{}) error {
 	return nil
+}
+
+//Send send result
+func (dmc *DMContext) Send(identity string, action string, module string, msg *model.Message) error {
+	dmMsg := &dmtype.DMMessage{
+		Action:   action,
+		Identity: identity,
+		Type:     module,
+		Msg:      msg}
+	return dmc.CommTo(module, dmMsg)
+}
+
+//BuildModelMessage build mode messages
+func (dmc *DMContext) BuildModelMessage(group string, parentID string, resource string, operation string, content interface{}) *model.Message {
+	msg := model.NewMessage(parentID)
+	msg.BuildRouter(modules.TwinGroup, group, resource, operation)
+	msg.Content = content
+	return msg
 }

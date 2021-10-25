@@ -5,13 +5,32 @@ import (
 	"k8s.io/klog/v2"
 )
 
+//DeviceDelete the struct for deleting device
+type DeviceDelete struct {
+	DeviceID string
+	Name     string
+}
+
+//DeviceAttrUpdate the struct for updating device attr
+type DeviceAttrUpdate struct {
+	DeviceID string
+	Name     string
+	Cols     map[string]interface{}
+}
+
 //Device the struct of device
 type Device struct {
 	ID          string `orm:"column(id); size(64); pk"`
+	DeviceID    string `orm:"column(deviceid); null; type(text)"`
 	Name        string `orm:"column(name); null; type(text)"`
 	Description string `orm:"column(description); null; type(text)"`
 	State       string `orm:"column(state); null; type(text)"`
 	LastOnline  string `orm:"column(last_online); null; type(text)"`
+
+	Value    string `orm:"column(value);null;type(text)"`
+	Optional bool   `orm:"column(optional);null;type(integer)"`
+	AttrType string `orm:"column(attr_type);null;type(text)"`
+	Metadata string `orm:"column(metadata);null;type(text)"`
 }
 
 //SaveDevice save device
@@ -81,65 +100,5 @@ func UpdateDeviceMulti(updates []DeviceUpdate) error {
 			return err
 		}
 	}
-	return nil
-}
-
-//AddDeviceTrans the transaction of add device
-func AddDeviceTrans(adds []Device, addAttrs []DeviceAttr, addTwins []DeviceTwin) error {
-	var err error
-	obm := dbm.DBAccess
-	obm.Begin()
-	for _, add := range adds {
-		err = SaveDevice(&add)
-
-		if err != nil {
-			klog.Errorf("save device failed: %v", err)
-			obm.Rollback()
-			return err
-		}
-	}
-
-	for _, attr := range addAttrs {
-		err = SaveDeviceAttr(&attr)
-		if err != nil {
-			obm.Rollback()
-			return err
-		}
-	}
-
-	for _, twin := range addTwins {
-		err = SaveDeviceTwin(&twin)
-		if err != nil {
-			obm.Rollback()
-			return err
-		}
-	}
-	obm.Commit()
-	return nil
-}
-
-//DeleteDeviceTrans the transaction of delete device
-func DeleteDeviceTrans(deletes []string) error {
-	var err error
-	obm := dbm.DBAccess
-	obm.Begin()
-	for _, delete := range deletes {
-		err = DeleteDeviceByID(delete)
-		if err != nil {
-			obm.Rollback()
-			return err
-		}
-		err = DeleteDeviceAttrByDeviceID(delete)
-		if err != nil {
-			obm.Rollback()
-			return err
-		}
-		err = DeleteDeviceTwinByDeviceID(delete)
-		if err != nil {
-			obm.Rollback()
-			return err
-		}
-	}
-	obm.Commit()
 	return nil
 }
