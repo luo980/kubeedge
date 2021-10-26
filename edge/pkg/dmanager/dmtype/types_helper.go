@@ -93,6 +93,16 @@ func UnmarshalMembershipDetail(payload []byte) (*MembershipDetail, error) {
 	return &membershipDetail, nil
 }
 
+//UnmarshalTwinMsg Unmarshal TwinMsg
+func UnmarshalTwinMsg(payload []byte) (*TwinMsg, error) {
+	var twinmsg TwinMsg
+	err := json.Unmarshal(payload, &twinmsg)
+	if err != nil {
+		return nil, err
+	}
+	return &twinmsg, nil
+}
+
 //CopyMsgAttr copy msg attr
 func CopyMsgAttr(msgAttr *MsgAttr) MsgAttr {
 	var result MsgAttr

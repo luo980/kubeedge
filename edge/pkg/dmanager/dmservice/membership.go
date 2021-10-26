@@ -8,8 +8,12 @@ import (
 	"github.com/kubeedge/kubeedge/edge/pkg/common/modules"
 	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmcommon"
 	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmcontext"
+	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmdatabase"
 	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmtype"
+	"github.com/sirupsen/logrus"
 	"k8s.io/klog/v2"
+	"strings"
+	"sync"
 	"time"
 )
 
@@ -33,6 +37,13 @@ func (mw MemWorker) Start() {
 			}
 			if dmMsg, isDMMessage := msg.(*dmtype.DMMessage); isDMMessage {
 				if fn, exist := memActionCallBack[dmMsg.Action]; exist {
+					logrus.WithFields(logrus.Fields{
+						"module":   "dmservice",
+						"func":     "Memworker Start()",
+						"Identity": dmMsg.Identity,
+						"Msg":      dmMsg.Msg,
+						"Action":   dmMsg.Action,
+					}).Infof("membership memActionCallBack isExist?")
 					err := fn(mw.DMContexts, dmMsg.Identity, dmMsg.Msg)
 					if err != nil {
 						klog.Errorf("MemModule deal %s event failed: %v", dmMsg.Action, err)
@@ -58,6 +69,10 @@ func initMemActionCallBack() {
 	memActionCallBack[dmcommon.MemGet] = dealMembershipGet
 	memActionCallBack[dmcommon.MemUpdated] = dealMembershipUpdate
 	memActionCallBack[dmcommon.MemDetailResult] = dealMembershipDetail
+	memActionCallBack[dmcommon.TwinGet] = dealTwinMsg
+	memActionCallBack[dmcommon.TwinUpdate] = dealTwinMsg
+	memActionCallBack[dmcommon.TwinCloudSync] = dealTwinMsg
+
 }
 
 func dealMembershipGet(context *dmcontext.DMContext, resource string, msg interface{}) error {
@@ -88,7 +103,19 @@ func dealMembershipUpdate(context *dmcontext.DMContext, resource string, msg int
 		return errors.New("assertion failed")
 	}
 
+	logrus.WithFields(logrus.Fields{
+		"module":  "dmservice",
+		"func":    "dealMembershipUpdate()",
+		"message": message,
+		//"contentData" : contentData,
+	}).Infof("MemUpdated actions")
+
 	updateEdgeGroups, err := dmtype.UnmarshalMembershipUpdate(contentData)
+	logrus.WithFields(logrus.Fields{
+		"module": "dmservice",
+		"func":   "UnmarshalMembershipUpdate()",
+		"update": updateEdgeGroups,
+	}).Infof("UnmarshalMembershipUpdate actions")
 
 	if err != nil {
 		klog.Errorf("Unmarshal membership info failed , err: %#v", err)
@@ -96,9 +123,17 @@ func dealMembershipUpdate(context *dmcontext.DMContext, resource string, msg int
 	}
 
 	baseMessage := dmtype.BaseMessage{EventID: updateEdgeGroups.EventID}
+	logrus.WithFields(logrus.Fields{
+		"module":                         "dmservice",
+		"baseMessage":                    baseMessage,
+		"updateEdgeGroups.EventID":       updateEdgeGroups.EventID,
+		"updateEdgeGroups.AddDevices":    updateEdgeGroups.AddDevices,
+		"updateEdgeGroups.RemoveDevices": updateEdgeGroups.RemoveDevices,
+	}).Infof("EventID and Add/Remove")
 	if updateEdgeGroups.AddDevices != nil && len(updateEdgeGroups.AddDevices) > 0 {
 		//add device
 		addDevice(context, updateEdgeGroups.AddDevices, baseMessage, false)
+
 	}
 	if updateEdgeGroups.RemoveDevices != nil && len(updateEdgeGroups.RemoveDevices) > 0 {
 		// delete device
@@ -137,6 +172,31 @@ func dealMembershipDetail(context *dmcontext.DMContext, resource string, msg int
 		removeDevice(context, toRemove, baseMessage, isDelta)
 	}
 	klog.Info("Deal node detail info successful")
+	logrus.WithFields(logrus.Fields{
+		"context":    context,
+		"devicelist": context.DeviceList,
+	}).Infof("dealMembershipDetail finished")
+	return nil
+}
+
+func dealTwinMsg(context *dmcontext.DMContext, resource string, msg interface{}) error {
+	message, ok := msg.(*model.Message)
+	if !ok {
+		return errors.New("msg not Message type")
+	}
+
+	contentData, ok := message.Content.([]byte)
+	TwinMsg, err := dmtype.UnmarshalTwinMsg(contentData)
+	if err != nil {
+
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"module":      "dmservice",
+		"func":        "dealMembershipUpdate()",
+		"message":     message,
+		"contentData": TwinMsg,
+	}).Infof("dealtwin messages")
 	return nil
 }
 
@@ -186,11 +246,168 @@ func dealMembershipGetInner(context *dmcontext.DMContext, payload []byte) error 
 }
 
 func addDevice(context *dmcontext.DMContext, toAdd []dmtype.Device, baseMessage dmtype.BaseMessage, delta bool) {
+	logrus.WithFields(logrus.Fields{
+		"module":      "dmservice",
+		"context":     context,
+		"toAdd":       toAdd,
+		"baseMessage": baseMessage,
+		"delta":       delta,
+	}).Infof("addDevice")
+	if !delta {
+		baseMessage.EventID = ""
+	}
+	for _, device := range toAdd {
+		//if device has existed, step out
+		deviceInstance, isDeviceExist := context.GetDevice(device.ID)
+		if isDeviceExist {
+			if delta {
+				klog.Errorf("Add device %s failed, has existed", device.ID)
+				continue
+			}
+			UpdateDeviceAttr(context, device.ID, device.Attributes, baseMessage, !delta)
+			//DealDeviceTwin(context, device.ID, baseMessage.EventID, device.Twin, dealType)
+			//todo sync twin
+			continue
+		}
+		var deviceMutex sync.Mutex
+		context.DeviceMutex.Store(device.ID, &deviceMutex)
+
+		// TODO: what?
+		if delta {
+			context.Lock(device.ID)
+		}
+
+		deviceInstance = &dmtype.Device{ID: device.ID, Name: device.Name, Description: device.Description, State: device.State}
+		context.DeviceList.Store(device.ID, deviceInstance)
+		logrus.WithFields(logrus.Fields{
+			"context": "context",
+		}).Infof("Before addDevice db")
+		err := WriteDevice2Sql(device)
+		logrus.WithFields(logrus.Fields{
+			"context": context,
+			"toAdd":   device.ID,
+		}).Infof("addDevice db Success")
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"err":         err,
+				"context":     context,
+				"toAdd":       toAdd,
+				"baseMessage": baseMessage,
+				"delta":       delta,
+			}).Errorf("addDevice to db failed")
+			klog.Errorf("Add device %s failed due to some error ,err: %#v", device.ID, err)
+			context.DeviceList.Delete(device.ID)
+			context.Unlock(device.ID)
+			continue
+		}
+	}
+
 }
 
 func removeDevice(context *dmcontext.DMContext, toRemove []dmtype.Device, baseMessage dmtype.BaseMessage, delta bool) {
+	logrus.WithFields(logrus.Fields{
+		"module":      "dmservice",
+		"context":     context,
+		"toRemove":    toRemove,
+		"baseMessage": baseMessage,
+		"delta":       delta,
+	}).Infof("removeDevice")
+	klog.Infof("Begin to remove devices")
+	if !delta {
+		baseMessage.EventID = ""
+	}
+	for _, device := range toRemove {
+		//update sqlite
+		_, deviceExist := context.GetDevice(device.ID)
+		if !deviceExist {
+			klog.Errorf("Remove device %s failed, not existed", device.ID)
+			continue
+		}
+		if delta {
+			context.Lock(device.ID)
+		}
+
+		err := DeleteDevice4Sql(device)
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"err":         err,
+				"context":     context,
+				"todelete":    device.ID,
+				"baseMessage": baseMessage,
+				"delta":       delta,
+			}).Errorf("delDevice 4 db failed")
+		}
+		context.DeviceList.Delete(device.ID)
+		context.DeviceMutex.Delete(device.ID)
+		logrus.WithFields(logrus.Fields{
+			"context":  context,
+			"todelete": device.ID,
+		}).Infof("delDevice Success")
+	}
 }
 
 func getRemoveList(context *dmcontext.DMContext, devices []dmtype.Device) []dmtype.Device {
-	return nil
+	var toRemove []dmtype.Device
+	context.DeviceList.Range(func(key interface{}, value interface{}) bool {
+		isExist := false
+		for _, v := range devices {
+			if strings.Compare(v.ID, key.(string)) == 0 {
+				isExist = true
+				break
+			}
+		}
+		if !isExist {
+			toRemove = append(toRemove, dmtype.Device{ID: key.(string)})
+		}
+		return true
+	})
+	logrus.WithFields(logrus.Fields{
+		"toRemove": toRemove,
+	}).Infof("Remove list")
+	return toRemove
+}
+
+//WriteDevice2Sql impl by membership
+func WriteDevice2Sql(device dmtype.Device) error {
+	var err error
+	adds := make([]dmdatabase.Device, 0)
+	adds = append(adds, dmdatabase.Device{
+		ID:          device.ID,
+		Name:        device.Name,
+		Description: device.Description,
+		//State:       device.State,
+	})
+	logrus.WithFields(logrus.Fields{
+		"context": "context",
+		"adds":    adds,
+	}).Infof("before add transaction")
+	for i := 1; i <= dmcommon.RetryTimes; i++ {
+		err = dmdatabase.AddDeviceTrans(adds)
+		if err == nil {
+			logrus.WithFields(logrus.Fields{
+				"adds": "adds",
+			}).Infof("add transaction no err")
+			break
+		}
+		logrus.WithFields(logrus.Fields{
+			"err": err,
+		}).Errorf("Add transaction err")
+		time.Sleep(dmcommon.RetryInterval)
+	}
+	return err
+}
+
+// DeleteDevice4Sql delete device from sql
+func DeleteDevice4Sql(device dmtype.Device) error {
+	var err error
+	deletes := make([]string, 0)
+	deletes = append(deletes, device.ID)
+	for i := 1; i <= dmcommon.RetryTimes; i++ {
+		err = dmdatabase.DeleteDeviceTrans(deletes)
+		if err == nil {
+			break
+		}
+		time.Sleep(dmcommon.RetryInterval)
+	}
+	return err
 }

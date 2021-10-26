@@ -95,3 +95,9 @@ type DealAttrResult struct {
 	Result map[string]*MsgAttr
 	Err    error
 }
+
+//TwinMsg the struct of twin update
+type TwinMsg struct {
+	BaseMessage
+	Twin map[string]*MsgTwin `json:"twin"`
+}

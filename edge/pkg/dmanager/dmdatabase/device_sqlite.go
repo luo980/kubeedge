@@ -2,6 +2,7 @@ package dmdatabase
 
 import (
 	"github.com/kubeedge/kubeedge/edge/pkg/common/dbm"
+	"github.com/sirupsen/logrus"
 	"k8s.io/klog/v2"
 )
 
@@ -24,18 +25,24 @@ type Device struct {
 	DeviceID    string `orm:"column(deviceid); null; type(text)"`
 	Name        string `orm:"column(name); null; type(text)"`
 	Description string `orm:"column(description); null; type(text)"`
-	State       string `orm:"column(state); null; type(text)"`
-	LastOnline  string `orm:"column(last_online); null; type(text)"`
+	//State       string `orm:"column(state); null; type(text)"`
+	LastOnline string `orm:"column(last_online); null; type(text)"`
 
-	Value    string `orm:"column(value);null;type(text)"`
-	Optional bool   `orm:"column(optional);null;type(integer)"`
-	AttrType string `orm:"column(attr_type);null;type(text)"`
-	Metadata string `orm:"column(metadata);null;type(text)"`
+	//Value    string `orm:"column(value);null;type(text)"`
+	//Optional bool   `orm:"column(optional);null;type(integer)"`
+	//AttrType string `orm:"column(attr_type);null;type(text)"`
+	//Metadata string `orm:"column(metadata);null;type(text)"`
 }
 
 //SaveDevice save device
 func SaveDevice(doc *Device) error {
+	logrus.WithFields(logrus.Fields{
+		"Device": doc,
+	}).Errorf("b4 Insert err")
 	num, err := dbm.DBAccess.Insert(doc)
+	logrus.WithFields(logrus.Fields{
+		"err": err,
+	}).Errorf("Insert err")
 	klog.V(4).Infof("Insert affected Num: %d, %v", num, err)
 	return err
 }
@@ -100,5 +107,56 @@ func UpdateDeviceMulti(updates []DeviceUpdate) error {
 			return err
 		}
 	}
+	return nil
+}
+
+//AddDeviceTrans the transaction of add device
+func AddDeviceTrans(adds []Device) error {
+	logrus.WithFields(logrus.Fields{
+		"err": "err",
+	}).Errorf("transaction operate func")
+	var err error
+	obm := dbm.DBAccess
+	errx := obm.Begin()
+
+	logrus.WithFields(logrus.Fields{
+		"err":  errx,
+		"adds": adds,
+	}).Errorf("obm begin err")
+
+	for _, add := range adds {
+		err = SaveDevice(&add)
+		logrus.WithFields(logrus.Fields{
+			"err": err,
+		}).Errorf("SaveDevice err")
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"err": err,
+			}).Errorf("transaction operate err and rollback")
+			klog.Errorf("save device failed: %v", err)
+			obm.Rollback()
+			return err
+		}
+	}
+	errcom := obm.Commit()
+	logrus.WithFields(logrus.Fields{
+		"err": errcom,
+	}).Errorf("obm commit err")
+	return nil
+}
+
+//DeleteDeviceTrans the transaction of delete device
+func DeleteDeviceTrans(deletes []string) error {
+	var err error
+	obm := dbm.DBAccess
+	obm.Begin()
+	for _, delete := range deletes {
+		err = DeleteDeviceByID(delete)
+		if err != nil {
+			obm.Rollback()
+			return err
+		}
+	}
+	obm.Commit()
 	return nil
 }

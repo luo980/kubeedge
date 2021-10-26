@@ -150,6 +150,7 @@ func environmentCheck() error {
 
 // registerModules register all the modules started in edgecore
 func registerModules(c *v1alpha1.EdgeCoreConfig) {
+	dmanager.Register(c.Modules.DManager, c.Modules.Edged.HostnameOverride)
 	devicetwin.Register(c.Modules.DeviceTwin, c.Modules.Edged.HostnameOverride)
 	edged.Register(c.Modules.Edged)
 	edgehub.Register(c.Modules.EdgeHub, c.Modules.Edged.HostnameOverride)
@@ -160,5 +161,4 @@ func registerModules(c *v1alpha1.EdgeCoreConfig) {
 	test.Register(c.Modules.DBTest)
 	// Note: Need to put it to the end, and wait for all models to register before executing
 	dbm.InitDBConfig(c.DataBase.DriverName, c.DataBase.AliasName, c.DataBase.DataSource)
-	dmanager.Register(c.Modules.DManager, c.Modules.Edged.HostnameOverride)
 }

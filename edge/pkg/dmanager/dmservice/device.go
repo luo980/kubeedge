@@ -3,9 +3,6 @@ package dmservice
 import (
 	"errors"
 	"github.com/kubeedge/beehive/pkg/core/model"
-	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmdatabase"
-
-	"encoding/json"
 	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmcommon"
 	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmcontext"
 	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmtype"
@@ -100,108 +97,108 @@ func dealDeviceStateUpdate(context *dmcontext.DMContext, resource string, msg in
 	return nil
 }
 
-func UpdateDeviceAttr(context *dmcontext.DMContext, deviceID string, attributes map[string]*dmtype.MsgAttr, baseMessage dmtype.BaseMessage, dealType int) (interface{}, error) {
+func UpdateDeviceAttr(context *dmcontext.DMContext, deviceID string, attributes map[string]*dmtype.MsgAttr, baseMessage dmtype.BaseMessage, dealType bool) (interface{}, error) {
 	return nil, nil
 }
 
 //DealMsgAttr get diff,0:update, 1:detail
-func DealMsgAttr(context *dmcontext.DMContext, deviceID string, msgAttrs map[string]*dmtype.MsgAttr, dealType int) dmtype.DealAttrResult {
-	device, ok := context.GetDevice(deviceID)
-	if !ok {
-		klog.Errorf("Can't Get device %v", deviceID)
-	}
-	attrs := device.Attributes
-	if attrs == nil {
-		device.Attributes = make(map[string]*dmtype.MsgAttr)
-		attrs = device.Attributes
-	}
-	add := make([]dmdatabase.Device, 0)
-	deletes := make([]dmdatabase.DeviceDelete, 0)
-	update := make([]dmdatabase.DeviceAttrUpdate, 0)
-	result := make(map[string]*dmtype.MsgAttr)
-
-	for key, msgAttr := range msgAttrs {
-		if attr, exist := attrs[key]; exist {
-			if msgAttr == nil && dealType == 0 {
-				if *attr.Optional {
-					deletes = append(deletes, dmdatabase.DeviceDelete{DeviceID: deviceID, Name: key})
-					result[key] = nil
-					delete(attrs, key)
-				}
-				continue
-			}
-			isChange := false
-			cols := make(map[string]interface{})
-			result[key] = &dmtype.MsgAttr{}
-			if strings.Compare(attr.Value, msgAttr.Value) != 0 {
-				attr.Value = msgAttr.Value
-
-				cols["value"] = msgAttr.Value
-				result[key].Value = msgAttr.Value
-
-				isChange = true
-			}
-			if msgAttr.Metadata != nil {
-				msgMetaJSON, _ := json.Marshal(msgAttr.Metadata)
-				attrMetaJSON, _ := json.Marshal(attr.Metadata)
-				if strings.Compare(string(msgMetaJSON), string(attrMetaJSON)) != 0 {
-					cols["attr_type"] = msgAttr.Metadata.Type
-					meta := dmtype.CopyMsgAttr(msgAttr)
-					attr.Metadata = meta.Metadata
-					msgAttr.Metadata.Type = ""
-					metaJSON, _ := json.Marshal(msgAttr.Metadata)
-					cols["metadata"] = string(metaJSON)
-					msgAttr.Metadata.Type = cols["attr_type"].(string)
-					result[key].Metadata = meta.Metadata
-					isChange = true
-				}
-			}
-			if msgAttr.Optional != nil {
-				if *msgAttr.Optional != *attr.Optional && *attr.Optional {
-					optional := *msgAttr.Optional
-					cols["optional"] = optional
-					attr.Optional = &optional
-					result[key].Optional = &optional
-					isChange = true
-				}
-			}
-			if isChange {
-				update = append(update, dmdatabase.DeviceAttrUpdate{DeviceID: deviceID, Name: key, Cols: cols})
-			} else {
-				delete(result, key)
-			}
-		} else {
-			deviceAttr := dmtype.MsgAttrToDeviceAttr(key, msgAttr)
-			deviceAttr.DeviceID = deviceID
-			deviceAttr.Value = msgAttr.Value
-			if msgAttr.Optional != nil {
-				optional := *msgAttr.Optional
-				deviceAttr.Optional = optional
-			}
-			if msgAttr.Metadata != nil {
-				//todo
-				deviceAttr.AttrType = msgAttr.Metadata.Type
-				msgAttr.Metadata.Type = ""
-				metaJSON, _ := json.Marshal(msgAttr.Metadata)
-				msgAttr.Metadata.Type = deviceAttr.AttrType
-				deviceAttr.Metadata = string(metaJSON)
-			}
-			add = append(add, deviceAttr)
-			attrs[key] = msgAttr
-			result[key] = msgAttr
-		}
-	}
-	if dealType > 0 {
-		for key := range attrs {
-			if _, exist := msgAttrs[key]; !exist {
-				deletes = append(deletes, dmdatabase.DeviceDelete{DeviceID: deviceID, Name: key})
-				result[key] = nil
-			}
-		}
-		for _, v := range deletes {
-			delete(attrs, v.Name)
-		}
-	}
-	//return dmtype.DealAttrResult{Add: add, Delete: deletes, Update: update, Result: result, Err: nil}
-	return dmtype.DealAttrResult{}
-}
+//func DealMsgAttr(context *dmcontext.DMContext, deviceID string, msgAttrs map[string]*dmtype.MsgAttr, dealType int) dmtype.DealAttrResult {
+//	device, ok := context.GetDevice(deviceID)
+//	if !ok {
+//		klog.Errorf("Can't Get device %v", deviceID)
+//	}
+//	attrs := device.Attributes
+//	if attrs == nil {
+//		device.Attributes = make(map[string]*dmtype.MsgAttr)
+//		attrs = device.Attributes
+//	}
+//	add := make([]dmdatabase.Device, 0)
+//	deletes := make([]dmdatabase.DeviceDelete, 0)
+//	update := make([]dmdatabase.DeviceAttrUpdate, 0)
+//	result := make(map[string]*dmtype.MsgAttr)
+//
+//	for key, msgAttr := range msgAttrs {
+//		if attr, exist := attrs[key]; exist {
+//			if msgAttr == nil && dealType == 0 {
+//				if *attr.Optional {
+//					deletes = append(deletes, dmdatabase.DeviceDelete{DeviceID: deviceID, Name: key})
+//					result[key] = nil
+//					delete(attrs, key)
+//				}
+//				continue
+//			}
+//			isChange := false
+//			cols := make(map[string]interface{})
+//			result[key] = &dmtype.MsgAttr{}
+//			if strings.Compare(attr.Value, msgAttr.Value) != 0 {
+//				attr.Value = msgAttr.Value
+//
+//				cols["value"] = msgAttr.Value
+//				result[key].Value = msgAttr.Value
+//
+//				isChange = true
+//			}
+//			if msgAttr.Metadata != nil {
+//				msgMetaJSON, _ := json.Marshal(msgAttr.Metadata)
+//				attrMetaJSON, _ := json.Marshal(attr.Metadata)
+//				if strings.Compare(string(msgMetaJSON), string(attrMetaJSON)) != 0 {
+//					cols["attr_type"] = msgAttr.Metadata.Type
+//					meta := dmtype.CopyMsgAttr(msgAttr)
+//					attr.Metadata = meta.Metadata
+//					msgAttr.Metadata.Type = ""
+//					metaJSON, _ := json.Marshal(msgAttr.Metadata)
+//					cols["metadata"] = string(metaJSON)
+//					msgAttr.Metadata.Type = cols["attr_type"].(string)
+//					result[key].Metadata = meta.Metadata
+//					isChange = true
+//				}
+//			}
+//			if msgAttr.Optional != nil {
+//				if *msgAttr.Optional != *attr.Optional && *attr.Optional {
+//					optional := *msgAttr.Optional
+//					cols["optional"] = optional
+//					attr.Optional = &optional
+//					result[key].Optional = &optional
+//					isChange = true
+//				}
+//			}
+//			if isChange {
+//				update = append(update, dmdatabase.DeviceAttrUpdate{DeviceID: deviceID, Name: key, Cols: cols})
+//			} else {
+//				delete(result, key)
+//			}
+//		} else {
+//			deviceAttr := dmtype.MsgAttrToDeviceAttr(key, msgAttr)
+//			deviceAttr.DeviceID = deviceID
+//			deviceAttr.Value = msgAttr.Value
+//			if msgAttr.Optional != nil {
+//				optional := *msgAttr.Optional
+//				deviceAttr.Optional = optional
+//			}
+//			if msgAttr.Metadata != nil {
+//				//todo
+//				deviceAttr.AttrType = msgAttr.Metadata.Type
+//				msgAttr.Metadata.Type = ""
+//				metaJSON, _ := json.Marshal(msgAttr.Metadata)
+//				msgAttr.Metadata.Type = deviceAttr.AttrType
+//				deviceAttr.Metadata = string(metaJSON)
+//			}
+//			add = append(add, deviceAttr)
+//			attrs[key] = msgAttr
+//			result[key] = msgAttr
+//		}
+//	}
+//	if dealType > 0 {
+//		for key := range attrs {
+//			if _, exist := msgAttrs[key]; !exist {
+//				deletes = append(deletes, dmdatabase.DeviceDelete{DeviceID: deviceID, Name: key})
+//				result[key] = nil
+//			}
+//		}
+//		for _, v := range deletes {
+//			delete(attrs, v.Name)
+//		}
+//	}
+//	//return dmtype.DealAttrResult{Add: add, Delete: deletes, Update: update, Result: result, Err: nil}
+//	return dmtype.DealAttrResult{}
+//}

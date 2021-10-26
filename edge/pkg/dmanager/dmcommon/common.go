@@ -1,6 +1,14 @@
 package dmcommon
 
+import "time"
+
 const (
+
+	// RetryTimes for retry times
+	RetryTimes = 5
+	// RetryInterval for retry interval
+	RetryInterval = 10 * time.Second
+
 	// TestModule test module
 	TestModule = "TestModule"
 

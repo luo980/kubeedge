@@ -10,6 +10,7 @@ import (
 	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmcommon"
 	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmmodule"
 	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmtype"
+	"github.com/sirupsen/logrus"
 	"k8s.io/klog/v2"
 	"strings"
 )
@@ -32,14 +33,30 @@ func (dm *DManager) runDeviceManager() {
 			select {
 			case <-beehiveContext.Done():
 				klog.Warning("Stop DeviceManager Receiving.")
+				logrus.WithFields(logrus.Fields{
+					"module": "dmanager",
+					"func":   "runDeviceManager()",
+				}).Infof("Stop DeviceManager Receiving.")
+
 				return
 			default:
 			}
 			if msg, ok := beehiveContext.Receive("dmgr"); ok == nil {
 				klog.Info("DeviceManager receive msg")
+				logrus.WithFields(logrus.Fields{
+					"msg":    msg,
+					"module": "dmanager",
+					"func":   "runDeviceManager()",
+				}).Infof("DeviceManager receive msg.")
+
 				err := dm.distributeMsg(msg)
 				if err != nil {
 					klog.Info("distributeMsg failed.")
+					logrus.WithFields(logrus.Fields{
+						"module": "dmanager",
+						"func":   "runDeviceManager()",
+					}).Infof("distributeMsg failed.")
+
 				}
 			}
 		}
@@ -68,7 +85,6 @@ func (dm *DManager) distributeMsg(m interface{}) error {
 	}
 	message := dmtype.DMMessage{Msg: &msg}
 	if message.Msg.GetParentID() != "" {
-		klog.Infof("Send msg to the %s module in twin", dmcommon.CommModule)
 		confirmMsg := dmtype.DMMessage{Msg: model.NewMessage(message.Msg.GetParentID()), Action: dmcommon.Confirm}
 		if err := dm.DMContexts.CommTo(dmcommon.CommModule, &confirmMsg); err != nil {
 			return err
@@ -86,6 +102,12 @@ func (dm *DManager) distributeMsg(m interface{}) error {
 		//how to deal write channel error
 		klog.Infof("Send msg to the %s module in twin", moduleName)
 		if err := dm.DMContexts.CommTo(moduleName, &message); err != nil {
+			logrus.WithFields(logrus.Fields{
+				"module":     "dmanager",
+				"moduleName": moduleName,
+				"message":    message,
+				"func":       "distributeMsg()",
+			}).Errorf("Error: dm.DMContexts.CommTo(moduleName, &message)")
 			return err
 		}
 	} else {
@@ -152,6 +174,12 @@ func classifyMsg(message *dmtype.DMMessage) bool {
 	} else if (strings.Compare(msgSource, modules.DMgrGroup) == 0) || (strings.Compare(msgSource, "devicecontroller") == 0) {
 		// Here to handle real device msgs
 		klog.Infof("Msg source2 is %s, Msg is %s", msgSource, message.Msg)
+		logrus.WithFields(logrus.Fields{
+			"module": "dmanager",
+			"func":   "classifyMsg()",
+			"source": msgSource,
+			"msg":    message.Msg,
+		}).Infof("Classify Msg!")
 		switch message.Msg.Content.(type) {
 		case []byte:
 			klog.Info("Message content type is []byte, no need to marshal again")
@@ -217,6 +245,11 @@ func initActionModuleMap() {
 	ActionModuleMap[dmcommon.MemDetailResult] = dmcommon.MemModule
 	ActionModuleMap[dmcommon.MemGet] = dmcommon.MemModule
 	ActionModuleMap[dmcommon.MemUpdated] = dmcommon.MemModule
+
+	// Twin updated handle transfer to MemModule
+	ActionModuleMap[dmcommon.TwinGet] = dmcommon.MemModule
+	ActionModuleMap[dmcommon.TwinUpdate] = dmcommon.MemModule
+	ActionModuleMap[dmcommon.TwinCloudSync] = dmcommon.MemModule
 
 	ActionModuleMap[dmcommon.DeviceUpdated] = dmcommon.DeviceModule
 	ActionModuleMap[dmcommon.DeviceStateGet] = dmcommon.DeviceModule
