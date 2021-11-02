@@ -2,6 +2,7 @@ package dmtype
 
 import (
 	"encoding/json"
+	"github.com/kubeedge/kubeedge/edge/pkg/devicetwin/dtclient"
 	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmdatabase"
 	"k8s.io/klog/v2"
 	"time"
@@ -109,21 +110,4 @@ func CopyMsgAttr(msgAttr *MsgAttr) MsgAttr {
 	payload, _ := json.Marshal(msgAttr)
 	json.Unmarshal(payload, &result)
 	return result
-}
-
-////MsgAttrToDeviceAttr msgattr to deviceattr
-func MsgAttrToDeviceAttr(name string, msgAttr *MsgAttr) dmdatabase.Device {
-	//	attrType := "string"
-	//	if msgAttr.Metadata != nil {
-	//		attrType = msgAttr.Metadata.Type
-	//	}
-	//	optional := true
-	//	if msgAttr.Optional != nil {
-	//		optional = *msgAttr.Optional
-	//	}
-	//	return dtclient.DeviceAttr{
-	//		Name:     name,
-	//		AttrType: attrType,
-	//		Optional: optional}
-	return dmdatabase.Device{}
 }

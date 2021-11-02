@@ -3,11 +3,14 @@ package dmservice
 import (
 	"errors"
 	"github.com/kubeedge/beehive/pkg/core/model"
+	"github.com/kubeedge/kubeedge/edge/pkg/devicetwin/dtcontext"
+	"github.com/kubeedge/kubeedge/edge/pkg/devicetwin/dttype"
 	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmcommon"
 	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmcontext"
 	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmtype"
 	"k8s.io/klog/v2"
 	"strings"
+	"time"
 
 	wlog "github.com/sirupsen/logrus"
 )
@@ -56,6 +59,37 @@ func initDeviceActionCallBack() {
 	deviceActionCallBack = make(map[string]CallBack)
 	deviceActionCallBack[dmcommon.DeviceUpdated] = dealDeviceAttrUpdate
 	deviceActionCallBack[dmcommon.DeviceStateUpdate] = dealDeviceStateUpdate
+	deviceActionCallBack[dmcommon.TwinUpdate] = dealDeviceDataUpdate
+
+}
+
+func dealDeviceDataUpdate(context *dmcontext.DMContext, resource string, msg interface{}) error {
+	log.WithFields(wlog.Fields{
+		"where": "device.go",
+	}).Info("here to update device data")
+	message, ok := msg.(*model.Message)
+	if !ok {
+		log.WithFields(wlog.Fields{
+			"where": "dealDeviceDataUpdate",
+		}).Errorf("Not message")
+	}
+	content, ok := message.Content.([]byte)
+	if !ok {
+		log.WithFields(wlog.Fields{
+			"where": "dealDeviceDataUpdate",
+		}).Errorf("Not Device data message")
+	}
+	context.Lock(resource)
+	Updated(context, resource, content)
+	context.Unlock(resource)
+	return nil
+}
+
+func Updated(context *dmcontext.DMContext, deviceID string, payload []byte) error {
+	result := []byte("")
+	msg, err := dmtype.UnmarshalDeviceTwinUpdate(payload)
+
+	return nil
 }
 
 func dealDeviceAttrUpdate(context *dmcontext.DMContext, resource string, msg interface{}) error {
@@ -97,108 +131,51 @@ func dealDeviceStateUpdate(context *dmcontext.DMContext, resource string, msg in
 	return nil
 }
 
-func UpdateDeviceAttr(context *dmcontext.DMContext, deviceID string, attributes map[string]*dmtype.MsgAttr, baseMessage dmtype.BaseMessage, dealType bool) (interface{}, error) {
+func UpdateDeviceMeta(context *dmcontext.DMContext, deviceID string, devMeta map[string]*dmtype.DevMeta, baseMessage dmtype.BaseMessage, dealType bool) (interface{}, error) {
+	log.WithFields(wlog.Fields{
+		"where": "device.go",
+		"what":  devMeta,
+	}).Info("here to update device info")
+	doc, docExist := context.DeviceList.Load(deviceID)
+	if !docExist {
+		log.WithFields(wlog.Fields{
+			"where": "device.go",
+		}).Info("Device not exist in DeviceList")
+		return nil, nil
+	}
+	var err error
+	DealMsgMeta(context, deviceID, devMeta)
+
 	return nil, nil
 }
 
-//DealMsgAttr get diff,0:update, 1:detail
-//func DealMsgAttr(context *dmcontext.DMContext, deviceID string, msgAttrs map[string]*dmtype.MsgAttr, dealType int) dmtype.DealAttrResult {
-//	device, ok := context.GetDevice(deviceID)
-//	if !ok {
-//		klog.Errorf("Can't Get device %v", deviceID)
-//	}
-//	attrs := device.Attributes
-//	if attrs == nil {
-//		device.Attributes = make(map[string]*dmtype.MsgAttr)
-//		attrs = device.Attributes
-//	}
-//	add := make([]dmdatabase.Device, 0)
-//	deletes := make([]dmdatabase.DeviceDelete, 0)
-//	update := make([]dmdatabase.DeviceAttrUpdate, 0)
-//	result := make(map[string]*dmtype.MsgAttr)
-//
-//	for key, msgAttr := range msgAttrs {
-//		if attr, exist := attrs[key]; exist {
-//			if msgAttr == nil && dealType == 0 {
-//				if *attr.Optional {
-//					deletes = append(deletes, dmdatabase.DeviceDelete{DeviceID: deviceID, Name: key})
-//					result[key] = nil
-//					delete(attrs, key)
-//				}
-//				continue
-//			}
-//			isChange := false
-//			cols := make(map[string]interface{})
-//			result[key] = &dmtype.MsgAttr{}
-//			if strings.Compare(attr.Value, msgAttr.Value) != 0 {
-//				attr.Value = msgAttr.Value
-//
-//				cols["value"] = msgAttr.Value
-//				result[key].Value = msgAttr.Value
-//
-//				isChange = true
-//			}
-//			if msgAttr.Metadata != nil {
-//				msgMetaJSON, _ := json.Marshal(msgAttr.Metadata)
-//				attrMetaJSON, _ := json.Marshal(attr.Metadata)
-//				if strings.Compare(string(msgMetaJSON), string(attrMetaJSON)) != 0 {
-//					cols["attr_type"] = msgAttr.Metadata.Type
-//					meta := dmtype.CopyMsgAttr(msgAttr)
-//					attr.Metadata = meta.Metadata
-//					msgAttr.Metadata.Type = ""
-//					metaJSON, _ := json.Marshal(msgAttr.Metadata)
-//					cols["metadata"] = string(metaJSON)
-//					msgAttr.Metadata.Type = cols["attr_type"].(string)
-//					result[key].Metadata = meta.Metadata
-//					isChange = true
-//				}
-//			}
-//			if msgAttr.Optional != nil {
-//				if *msgAttr.Optional != *attr.Optional && *attr.Optional {
-//					optional := *msgAttr.Optional
-//					cols["optional"] = optional
-//					attr.Optional = &optional
-//					result[key].Optional = &optional
-//					isChange = true
-//				}
-//			}
-//			if isChange {
-//				update = append(update, dmdatabase.DeviceAttrUpdate{DeviceID: deviceID, Name: key, Cols: cols})
-//			} else {
-//				delete(result, key)
-//			}
-//		} else {
-//			deviceAttr := dmtype.MsgAttrToDeviceAttr(key, msgAttr)
-//			deviceAttr.DeviceID = deviceID
-//			deviceAttr.Value = msgAttr.Value
-//			if msgAttr.Optional != nil {
-//				optional := *msgAttr.Optional
-//				deviceAttr.Optional = optional
-//			}
-//			if msgAttr.Metadata != nil {
-//				//todo
-//				deviceAttr.AttrType = msgAttr.Metadata.Type
-//				msgAttr.Metadata.Type = ""
-//				metaJSON, _ := json.Marshal(msgAttr.Metadata)
-//				msgAttr.Metadata.Type = deviceAttr.AttrType
-//				deviceAttr.Metadata = string(metaJSON)
-//			}
-//			add = append(add, deviceAttr)
-//			attrs[key] = msgAttr
-//			result[key] = msgAttr
-//		}
-//	}
-//	if dealType > 0 {
-//		for key := range attrs {
-//			if _, exist := msgAttrs[key]; !exist {
-//				deletes = append(deletes, dmdatabase.DeviceDelete{DeviceID: deviceID, Name: key})
-//				result[key] = nil
-//			}
-//		}
-//		for _, v := range deletes {
-//			delete(attrs, v.Name)
-//		}
-//	}
-//	//return dmtype.DealAttrResult{Add: add, Delete: deletes, Update: update, Result: result, Err: nil}
-//	return dmtype.DealAttrResult{}
-//}
+func DealMsgMeta(context *dmcontext.DMContext, deviceID string, meta map[string]*dmtype.DevMeta) {
+	device, _ := context.GetDevice(deviceID)
+	result := make(map[string]*dmtype.DevMeta)
+	if device.Meta == nil {
+		device.Meta = make(map[string]*dmtype.DevMeta)
+	}
+	devmetas := device.Meta
+	for key, metas := range meta {
+		// if key exists
+		if devmeta, exist := devmetas[key]; exist {
+			// nil meta
+			if metas == nil {
+				result[key] = nil
+				delete(devmetas, key)
+				continue
+			}
+			// not nil meta & update
+			result[key] = &dmtype.DevMeta{}
+			if strings.Compare(devmeta.Value, metas.Value) != 0 {
+				devmeta.Value = metas.Value
+			}
+			// key not exists
+		} else {
+			if len(metas.Metadata) != 0 {
+				devmeta.Metadata = metas.Metadata
+			}
+			devmeta.Value = metas.Value
+		}
+	}
+}

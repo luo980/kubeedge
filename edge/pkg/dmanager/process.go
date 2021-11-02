@@ -247,9 +247,9 @@ func initActionModuleMap() {
 	ActionModuleMap[dmcommon.MemUpdated] = dmcommon.MemModule
 
 	// Twin updated handle transfer to MemModule
-	ActionModuleMap[dmcommon.TwinGet] = dmcommon.MemModule
-	ActionModuleMap[dmcommon.TwinUpdate] = dmcommon.MemModule
-	ActionModuleMap[dmcommon.TwinCloudSync] = dmcommon.MemModule
+	ActionModuleMap[dmcommon.TwinGet] = dmcommon.DeviceModule
+	ActionModuleMap[dmcommon.TwinUpdate] = dmcommon.DeviceModule
+	ActionModuleMap[dmcommon.TwinCloudSync] = dmcommon.DeviceModule
 
 	ActionModuleMap[dmcommon.DeviceUpdated] = dmcommon.DeviceModule
 	ActionModuleMap[dmcommon.DeviceStateGet] = dmcommon.DeviceModule

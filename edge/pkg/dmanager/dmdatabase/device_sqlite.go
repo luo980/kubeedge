@@ -25,8 +25,9 @@ type Device struct {
 	DeviceID    string `orm:"column(deviceid); null; type(text)"`
 	Name        string `orm:"column(name); null; type(text)"`
 	Description string `orm:"column(description); null; type(text)"`
-	//State       string `orm:"column(state); null; type(text)"`
-	LastOnline string `orm:"column(last_online); null; type(text)"`
+	State       string `orm:"column(state); null; type(text)"`
+	LastOnline  string `orm:"column(last_online); null; type(text)"`
+	//TODO: a list of Metadatas
 
 	//Value    string `orm:"column(value);null;type(text)"`
 	//Optional bool   `orm:"column(optional);null;type(integer)"`

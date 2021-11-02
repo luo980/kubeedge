@@ -264,7 +264,7 @@ func addDevice(context *dmcontext.DMContext, toAdd []dmtype.Device, baseMessage 
 				klog.Errorf("Add device %s failed, has existed", device.ID)
 				continue
 			}
-			UpdateDeviceAttr(context, device.ID, device.Attributes, baseMessage, !delta)
+			UpdateDeviceMeta(context, device.ID, device.Meta, baseMessage, !delta)
 			//DealDeviceTwin(context, device.ID, baseMessage.EventID, device.Twin, dealType)
 			//todo sync twin
 			continue
