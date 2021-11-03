@@ -3,8 +3,6 @@ package dmservice
 import (
 	"errors"
 	"github.com/kubeedge/beehive/pkg/core/model"
-	"github.com/kubeedge/kubeedge/edge/pkg/devicetwin/dtcontext"
-	"github.com/kubeedge/kubeedge/edge/pkg/devicetwin/dttype"
 	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmcommon"
 	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmcontext"
 	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmtype"
@@ -37,6 +35,11 @@ func (dw DeviceWorker) Start() {
 			}
 			if dmMsg, isDMMessage := msg.(*dmtype.DMMessage); isDMMessage {
 				if fn, exist := deviceActionCallBack[dmMsg.Action]; exist {
+					log.WithFields(wlog.Fields{
+						"dmMsg.Action": dmMsg.Action,
+						"fn":           fn,
+						"func":         "Start()",
+					}).Infof("Device Module Received Msg")
 					err := fn(dw.DMContexts, dmMsg.Identity, dmMsg.Msg)
 					if err != nil {
 						klog.Errorf("DeviceModule deal %s event failed: %v", dmMsg.Action, err)
@@ -87,8 +90,54 @@ func dealDeviceDataUpdate(context *dmcontext.DMContext, resource string, msg int
 
 func Updated(context *dmcontext.DMContext, deviceID string, payload []byte) error {
 	result := []byte("")
-	msg, err := dmtype.UnmarshalDeviceTwinUpdate(payload)
+	msg, err := dmtype.UnmarshalDeviceDataUpdate(payload)
+	log.WithFields(wlog.Fields{
+		"where":  "Updated",
+		"result": result,
+		"msg":    msg,
+		"err":    err,
+	}).Infof("unmarshal finished")
+	eventID := msg.EventID
+	dealDeviceDiffUpdate(context, deviceID, eventID, msg.Data)
 
+	return nil
+}
+
+func dealDeviceDiffUpdate(context *dmcontext.DMContext, deviceID string, eventID string, data map[string]*dmtype.DevData) error {
+	//now := time.Now().UnixNano() / 1e6
+	device, isExist := context.GetDevice(deviceID)
+	log.WithFields(wlog.Fields{
+		"deviceID": deviceID,
+		"device":   device,
+		"where":    "dealDeviceDiffUpdate",
+	}).Infof("GetDevice")
+	if !isExist {
+		return errors.New("no device")
+	}
+	if data == nil {
+		return nil
+	}
+	oDeviceData := device.Data
+	for key, value := range data {
+		if innerData, exist := oDeviceData[key]; exist {
+			if value.Metadata == "" {
+				log.WithFields(wlog.Fields{
+					"where": "dealDeviceDiffUpdate",
+				}).Errorf("datas' Meta lost")
+			}
+			if data == nil || strings.Compare(value.Metadata, "deleted") == 0 {
+				delete(oDeviceData, key)
+				continue
+			}
+			oDeviceData[key] = innerData
+		} else {
+			//append(oDeviceData[key], value)
+		}
+	}
+	log.WithFields(wlog.Fields{
+		"where": "dealDeviceDiffUpdate",
+		"what":  oDeviceData,
+	}).Errorf("device data")
 	return nil
 }
 
@@ -118,7 +167,7 @@ func dealDeviceStateUpdate(context *dmcontext.DMContext, resource string, msg in
 	log.WithFields(wlog.Fields{
 		"where": "device.go",
 		"what":  device,
-	}).Info("here to debug device")
+	}).Info("here to handle device state")
 
 	// state refers to definition in mappers-go/pkg/common/const.go
 	state := strings.ToLower(updatedDevice.State)
@@ -127,23 +176,17 @@ func dealDeviceStateUpdate(context *dmcontext.DMContext, resource string, msg in
 	default:
 		return nil
 	}
+	device.State = state
+	device.LastOnline = time.Now().Format("2006-01-02 15:04:05")
 
 	return nil
 }
 
-func UpdateDeviceMeta(context *dmcontext.DMContext, deviceID string, devMeta map[string]*dmtype.DevMeta, baseMessage dmtype.BaseMessage, dealType bool) (interface{}, error) {
+func UpdateDeviceMeta(context *dmcontext.DMContext, deviceID string, devMeta map[string]*dmtype.DevMeta) (interface{}, error) {
 	log.WithFields(wlog.Fields{
 		"where": "device.go",
 		"what":  devMeta,
 	}).Info("here to update device info")
-	doc, docExist := context.DeviceList.Load(deviceID)
-	if !docExist {
-		log.WithFields(wlog.Fields{
-			"where": "device.go",
-		}).Info("Device not exist in DeviceList")
-		return nil, nil
-	}
-	var err error
 	DealMsgMeta(context, deviceID, devMeta)
 
 	return nil, nil

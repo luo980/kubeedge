@@ -1,9 +1,16 @@
 package dmtype
 
 import (
-	"github.com/kubeedge/kubeedge/edge/pkg/devicetwin/dtcommon"
+	"encoding/json"
+	"errors"
+	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmcommon"
 	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmdatabase"
+	wlog "github.com/sirupsen/logrus"
+	"time"
+	//"time"
 )
+
+var log = wlog.New()
 
 //BaseMessage the base struct of event message
 type BaseMessage struct {
@@ -73,49 +80,102 @@ type DealAttrResult struct {
 	Err    error
 }
 
-// UnmarshalDeviceTwinUpdate unmarshal device twin update
-func UnmarshalDeviceTwinUpdate(payload []byte) (*DeviceDataUpdate, error) {
-	var deviceTwinUpdate DeviceTwinUpdate
-	err := json.Unmarshal(payload, &deviceTwinUpdate)
+// UnmarshalDeviceDataUpdate unmarshal device twin update
+func UnmarshalDeviceDataUpdate(payload []byte) (*DeviceDataUpdate, error) {
+	var olddeviceDataUpdate OldDeviceDataUpdate
+	var deviceDataUpdate DeviceDataUpdate
+	err := json.Unmarshal(payload, &olddeviceDataUpdate)
+	deviceDataUpdate = fromOld2New(olddeviceDataUpdate)
 	if err != nil {
-		return &deviceTwinUpdate, ErrorUnmarshal
+		return &deviceDataUpdate, ErrorUnmarshal
 	}
-	if deviceTwinUpdate.Twin == nil {
-		return &deviceTwinUpdate, ErrorUpdate
+	if deviceDataUpdate.Data == nil {
+		return &deviceDataUpdate, ErrorUpdate
 	}
-	for key, value := range deviceTwinUpdate.Twin {
-		match := dtcommon.ValidateTwinKey(key)
+
+	for key, value := range deviceDataUpdate.Data {
+		match := dmcommon.ValidateDataKey(key)
+		log.WithFields(wlog.Fields{
+			"where":   "types.go",
+			"key":     key,
+			"value":   value,
+			"ismatch": match,
+		}).Infof("Unmarshal Device Data format")
+
 		if !match {
-			return &deviceTwinUpdate, ErrorKey
-		}
-		if value != nil {
-			if value.Expected != nil {
-				if value.Expected.Value != nil {
-					if *value.Expected.Value != "" {
-						match := dtcommon.ValidateTwinValue(*value.Expected.Value)
-						if !match {
-							return &deviceTwinUpdate, ErrorValue
-						}
-					}
-				}
-			}
-			if value.Actual != nil {
-				if value.Actual.Value != nil {
-					if *value.Actual.Value != "" {
-						match := dtcommon.ValidateTwinValue(*value.Actual.Value)
-						if !match {
-							return &deviceTwinUpdate, ErrorValue
-						}
-					}
-				}
-			}
+			return &deviceDataUpdate, ErrorKey
 		}
 	}
-	return &deviceTwinUpdate, nil
+	return &deviceDataUpdate, nil
 }
 
-//DeviceTwinUpdate the struct of device twin update
+//func fromOld2New(new map[string]*DevData, old map[string]*MsgTwin) {
+func fromOld2New(old OldDeviceDataUpdate) DeviceDataUpdate {
+
+	temp := make(map[string]*DevData)
+	//temp := make(map[string]*DevData)
+	for k, v := range old.Twin {
+		log.WithFields(wlog.Fields{
+			"key":   k,
+			"Value": v.Actual.Value,
+			//"Expected": v.Expected.Value,
+			"Metadata": v.Metadata.Type,
+		}).Infof("test")
+		temp[k] = &DevData{
+			Value:     *v.Actual.Value,
+			Metadata:  v.Metadata.Type,
+			Timestamp: time.Now().Format("2006-01-02 15:04:05"),
+		}
+	}
+	return DeviceDataUpdate{
+		BaseMessage: old.BaseMessage,
+		Data:        temp,
+	}
+}
+
+//DeviceDataUpdate the struct of device data update
 type DeviceDataUpdate struct {
+	BaseMessage
+	Data map[string]*DevData `json:"data"`
+}
+type OldDeviceDataUpdate struct {
 	BaseMessage
 	Twin map[string]*MsgTwin `json:"twin"`
 }
+
+//MsgTwin the struct of device twin
+type MsgTwin struct {
+	Expected        *TwinValue    `json:"expected,omitempty"`
+	Actual          *TwinValue    `json:"actual,omitempty"`
+	Optional        *bool         `json:"optional,omitempty"`
+	Metadata        *TypeMetadata `json:"metadata,omitempty"`
+	ExpectedVersion *TwinVersion  `json:"expected_version,omitempty"`
+	ActualVersion   *TwinVersion  `json:"actual_version,omitempty"`
+}
+
+//TwinValue the struct of twin value
+type TwinValue struct {
+	Value    *string        `json:"value,omitempty"`
+	Metadata *ValueMetadata `json:"metadata,omitempty"`
+}
+
+//ValueMetadata the meta of value
+type ValueMetadata struct {
+	Timestamp int64 `json:"timestamp,omitempty"`
+}
+
+//TypeMetadata the meta of value type
+type TypeMetadata struct {
+	Type string `json:"type,omitempty"`
+}
+
+//TwinVersion twin version
+type TwinVersion struct {
+	CloudVersion int64 `json:"cloud"`
+	EdgeVersion  int64 `json:"edge"`
+}
+
+var ErrorUnmarshal = errors.New("Unmarshal update request body failed, please check the request")
+var ErrorUpdate = errors.New("Update twin error, key:twin does not exist")
+var ErrorKey = errors.New("The key of twin must only include upper or lowercase letters, number, english, and special letter - _ . , : / @ # and the length of key should be less than 128 bytes")
+var ErrorValue = errors.New("The value of twin must only include upper or lowercase letters, number, english, and special letter - _ . , : / @ # and the length of value should be less than 512 bytes")

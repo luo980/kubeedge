@@ -84,6 +84,10 @@ func (dm *DManager) distributeMsg(m interface{}) error {
 		return errors.New("Distribute message, msg is nil")
 	}
 	message := dmtype.DMMessage{Msg: &msg}
+	logrus.WithFields(logrus.Fields{
+		"message": message,
+	}).Infof("distributeMsg DMMessage")
+
 	if message.Msg.GetParentID() != "" {
 		confirmMsg := dmtype.DMMessage{Msg: model.NewMessage(message.Msg.GetParentID()), Action: dmcommon.Confirm}
 		if err := dm.DMContexts.CommTo(dmcommon.CommModule, &confirmMsg); err != nil {
@@ -98,9 +102,13 @@ func (dm *DManager) distributeMsg(m interface{}) error {
 		initActionModuleMap()
 	}
 
+	logrus.WithFields(logrus.Fields{
+		"message.Action": message.Action,
+	}).Infof("ActionModuleMap")
+
 	if moduleName, exist := ActionModuleMap[message.Action]; exist {
 		//how to deal write channel error
-		klog.Infof("Send msg to the %s module in twin", moduleName)
+		klog.Infof("Send msg to the %s module", moduleName)
 		if err := dm.DMContexts.CommTo(moduleName, &message); err != nil {
 			logrus.WithFields(logrus.Fields{
 				"module":     "dmanager",
@@ -126,8 +134,8 @@ func classifyMsg(message *dmtype.DMMessage) bool {
 	var identity string
 	var action string
 	msgSource := message.Msg.GetSource()
-	if strings.Compare(msgSource, "edgemgr") == 0 {
-		klog.Infof("Edgemgr msg is %v", message.Msg)
+	if strings.Compare(msgSource, "bus") == 0 {
+		klog.Infof("bus msg is %v", message.Msg)
 		idLoc := 3
 		topic := message.Msg.GetResource()
 		topicByte, err := base64.URLEncoding.DecodeString(topic)
@@ -168,6 +176,13 @@ func classifyMsg(message *dmtype.DMMessage) bool {
 		message.Msg.Content = []byte((message.Msg.Content).(string))
 		message.Identity = identity
 		message.Action = action
+
+		logrus.WithFields(logrus.Fields{
+			"Content":  message.Msg.Content,
+			"Identity": identity,
+			"Action":   action,
+		}).Infof("bus Msg!")
+
 		klog.Infof("Classify the msg to action %s", action)
 		return true
 

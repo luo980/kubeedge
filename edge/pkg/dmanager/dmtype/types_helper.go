@@ -2,8 +2,6 @@ package dmtype
 
 import (
 	"encoding/json"
-	"github.com/kubeedge/kubeedge/edge/pkg/devicetwin/dtclient"
-	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmdatabase"
 	"k8s.io/klog/v2"
 	"time"
 )
@@ -11,8 +9,8 @@ import (
 //DeviceUpdate device update
 type DeviceUpdate struct {
 	BaseMessage
-	State      string              `json:"state,omitempty"`
-	Attributes map[string]*MsgAttr `json:"attributes"`
+	State string              `json:"state,omitempty"`
+	Meta  map[string]*DevMeta `json:"meta"`
 }
 
 //MembershipGetResult membership get result
@@ -64,8 +62,7 @@ func BuildMembershipGetResult(baseMessage BaseMessage, devices []*Device) ([]byt
 			Name:        v.Name,
 			Description: v.Description,
 			State:       v.State,
-			LastOnline:  v.LastOnline,
-			Attributes:  v.Attributes})
+			LastOnline:  v.LastOnline})
 	}
 	payload, err := json.Marshal(MembershipGetResult{BaseMessage: baseMessage, Devices: result})
 	if err != nil {
@@ -95,19 +92,19 @@ func UnmarshalMembershipDetail(payload []byte) (*MembershipDetail, error) {
 }
 
 //UnmarshalTwinMsg Unmarshal TwinMsg
-func UnmarshalTwinMsg(payload []byte) (*TwinMsg, error) {
-	var twinmsg TwinMsg
-	err := json.Unmarshal(payload, &twinmsg)
-	if err != nil {
-		return nil, err
-	}
-	return &twinmsg, nil
-}
+//func UnmarshalTwinMsg(payload []byte) (*TwinMsg, error) {
+//	var twinmsg TwinMsg
+//	err := json.Unmarshal(payload, &twinmsg)
+//	if err != nil {
+//		return nil, err
+//	}
+//	return &twinmsg, nil
+//}
 
-//CopyMsgAttr copy msg attr
-func CopyMsgAttr(msgAttr *MsgAttr) MsgAttr {
-	var result MsgAttr
-	payload, _ := json.Marshal(msgAttr)
-	json.Unmarshal(payload, &result)
-	return result
-}
+////CopyMsgAttr copy msg attr
+//func CopyMsgAttr(msgAttr *MsgAttr) MsgAttr {
+//	var result MsgAttr
+//	payload, _ := json.Marshal(msgAttr)
+//	json.Unmarshal(payload, &result)
+//	return result
+//}

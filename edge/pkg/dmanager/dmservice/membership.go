@@ -69,9 +69,6 @@ func initMemActionCallBack() {
 	memActionCallBack[dmcommon.MemGet] = dealMembershipGet
 	memActionCallBack[dmcommon.MemUpdated] = dealMembershipUpdate
 	memActionCallBack[dmcommon.MemDetailResult] = dealMembershipDetail
-	memActionCallBack[dmcommon.TwinGet] = dealTwinMsg
-	memActionCallBack[dmcommon.TwinUpdate] = dealTwinMsg
-	memActionCallBack[dmcommon.TwinCloudSync] = dealTwinMsg
 
 }
 
@@ -179,26 +176,25 @@ func dealMembershipDetail(context *dmcontext.DMContext, resource string, msg int
 	return nil
 }
 
-func dealTwinMsg(context *dmcontext.DMContext, resource string, msg interface{}) error {
-	message, ok := msg.(*model.Message)
-	if !ok {
-		return errors.New("msg not Message type")
-	}
-
-	contentData, ok := message.Content.([]byte)
-	TwinMsg, err := dmtype.UnmarshalTwinMsg(contentData)
-	if err != nil {
-
-	}
-
-	logrus.WithFields(logrus.Fields{
-		"module":      "dmservice",
-		"func":        "dealMembershipUpdate()",
-		"message":     message,
-		"contentData": TwinMsg,
-	}).Infof("dealtwin messages")
-	return nil
-}
+//func dealTwinMsg(context *dmcontext.DMContext, resource string, msg interface{}) error {
+//	message, ok := msg.(*model.Message)
+//	if !ok {
+//		return errors.New("msg not Message type")
+//	}
+//
+//	contentData, ok := message.Content.([]byte)
+//	TwinMsg, err := dmtype.UnmarshalTwinMsg(contentData)
+//	if err != nil {
+//
+//	}
+//	logrus.WithFields(logrus.Fields{
+//		"module":      "dmservice",
+//		"func":        "dealMembershipUpdate()",
+//		"message":     message,
+//		"contentData": TwinMsg,
+//	}).Infof("dealtwin messages")
+//	return nil
+//}
 
 func dealMembershipGetInner(context *dmcontext.DMContext, payload []byte) error {
 	klog.Info("Deal getting membership event")
@@ -264,7 +260,7 @@ func addDevice(context *dmcontext.DMContext, toAdd []dmtype.Device, baseMessage 
 				klog.Errorf("Add device %s failed, has existed", device.ID)
 				continue
 			}
-			UpdateDeviceMeta(context, device.ID, device.Meta, baseMessage, !delta)
+			UpdateDeviceMeta(context, device.ID, device.Meta)
 			//DealDeviceTwin(context, device.ID, baseMessage.EventID, device.Twin, dealType)
 			//todo sync twin
 			continue
@@ -283,10 +279,10 @@ func addDevice(context *dmcontext.DMContext, toAdd []dmtype.Device, baseMessage 
 			"context": "context",
 		}).Infof("Before addDevice db")
 		err := WriteDevice2Sql(device)
-		logrus.WithFields(logrus.Fields{
-			"context": context,
-			"toAdd":   device.ID,
-		}).Infof("addDevice db Success")
+		//logrus.WithFields(logrus.Fields{
+		//	"context": context,
+		//	"toAdd":   device.ID,
+		//}).Infof("addDevice db Success")
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
 				"err":         err,
