@@ -62,7 +62,7 @@ func initDeviceActionCallBack() {
 	deviceActionCallBack = make(map[string]CallBack)
 	deviceActionCallBack[dmcommon.DeviceUpdated] = dealDeviceAttrUpdate
 	deviceActionCallBack[dmcommon.DeviceStateUpdate] = dealDeviceStateUpdate
-	deviceActionCallBack[dmcommon.TwinUpdate] = dealDeviceDataUpdate
+	deviceActionCallBack[dmcommon.DataUpdate] = dealDeviceDataUpdate
 
 }
 

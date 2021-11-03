@@ -371,7 +371,8 @@ func WriteDevice2Sql(device dmtype.Device) error {
 		ID:          device.ID,
 		Name:        device.Name,
 		Description: device.Description,
-		//State:       device.State,
+		State:       device.State,
+		LastOnline:  device.LastOnline,
 	})
 	logrus.WithFields(logrus.Fields{
 		"context": "context",

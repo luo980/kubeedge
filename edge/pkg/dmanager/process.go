@@ -249,7 +249,7 @@ func initEventActionMap() {
 	EventActionMap[dmcommon.DeviceETPrefix][dmcommon.DeviceETUpdatedSuffix] = dmcommon.DeviceUpdated
 	EventActionMap[dmcommon.DeviceETPrefix][dmcommon.DeviceETStateUpdateSuffix] = dmcommon.DeviceStateUpdate
 
-	EventActionMap[dmcommon.DeviceETPrefix][dmcommon.TwinETUpdateSuffix] = dmcommon.TwinUpdate
+	EventActionMap[dmcommon.DeviceETPrefix][dmcommon.TwinETUpdateSuffix] = dmcommon.DataUpdate
 	EventActionMap[dmcommon.DeviceETPrefix][dmcommon.TwinETCloudSyncSuffix] = dmcommon.TwinCloudSync
 	EventActionMap[dmcommon.DeviceETPrefix][dmcommon.TwinETGetSuffix] = dmcommon.TwinGet
 }
@@ -263,7 +263,7 @@ func initActionModuleMap() {
 
 	// Twin updated handle transfer to MemModule
 	ActionModuleMap[dmcommon.TwinGet] = dmcommon.DeviceModule
-	ActionModuleMap[dmcommon.TwinUpdate] = dmcommon.DeviceModule
+	ActionModuleMap[dmcommon.DataUpdate] = dmcommon.DeviceModule
 	ActionModuleMap[dmcommon.TwinCloudSync] = dmcommon.DeviceModule
 
 	ActionModuleMap[dmcommon.DeviceUpdated] = dmcommon.DeviceModule

@@ -92,8 +92,8 @@ const (
 
 	// TwinGet get twin
 	TwinGet = "TwinGet"
-	// TwinUpdate twin update
-	TwinUpdate = "TwinUpdate"
+	// DataUpdate twin update
+	DataUpdate = "DataUpdate"
 	// TwinCloudSync twin cloud sync
 	TwinCloudSync = "TwinCloudSync"
 	// TwinEdgeSync twin edge sync
