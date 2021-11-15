@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/sirupsen/logrus"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
@@ -54,6 +56,8 @@ const (
 
 // VolumeRegExp is used to validate the volume resource
 var VolumeRegExp = regexp.MustCompile(VolumePattern)
+
+var f, _ = os.OpenFile("/home/luo980/logdir/handletest.log", os.O_WRONLY|os.O_CREATE|os.O_SYNC|os.O_APPEND, 0755)
 
 // MessageHandle processes messages between cloud and edge
 type MessageHandle struct {
@@ -117,6 +121,17 @@ func (mh *MessageHandle) HandleServer(container *mux.MessageContainer, writer mu
 	}
 
 	klog.V(4).Infof("[cloudhub/HandlerServer] get msg from edge(%v): %+v", nodeID, container.Message)
+	logrus.SetOutput(f)
+
+	logrus.WithFields(logrus.Fields{
+		"msg":           container.Message,
+		"\nSource":      container.Message.Router.Source,
+		"\nResource":    container.Message.Router.Resource,
+		"\nDestination": container.Message.Router.Destination,
+		"\nGroup":       container.Message.Router.Group,
+		"\nOperation":   container.Message.Router.Operation,
+	}).Errorf("Here's Receive a message")
+
 	if container.Message.GetOperation() == model.OpKeepalive {
 		klog.V(4).Infof("Keepalive message received from node: %s", nodeID)
 

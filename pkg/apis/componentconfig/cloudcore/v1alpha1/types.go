@@ -74,6 +74,8 @@ type Modules struct {
 	EdgeController *EdgeController `json:"edgeController,omitempty"`
 	// DeviceController indicates DeviceController module config
 	DeviceController *DeviceController `json:"deviceController,omitempty"`
+	// DeviceController indicates DeviceController module config
+	CDmanager *CDmanager `json:"cdmanager,omitempty"`
 	// SyncController indicates SyncController module config
 	SyncController *SyncController `json:"syncController,omitempty"`
 	// DynamicController indicates DynamicController module config
@@ -338,6 +340,12 @@ type DeviceController struct {
 	Buffer *DeviceControllerBuffer `json:"buffer,omitempty"`
 	// Load indicates DeviceController Load
 	Load *DeviceControllerLoad `json:"load,omitempty"`
+}
+
+type CDmanager struct {
+	Enable bool `json:"enable"`
+	// Context indicates send,receive,response modules for deviceController module
+	Context *ControllerContext `json:"context,omitempty"`
 }
 
 // DeviceControllerBuffer indicates deviceController buffer

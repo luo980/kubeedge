@@ -19,6 +19,9 @@ const (
 	CloudStreamModuleName = "cloudStream"
 	CloudStreamGroupName  = "cloudStream"
 
+	CDmamagerModuleName = "cdmgr"
+	CDmanagerGroupName  = "cdmgr"
+
 	RouterModuleName = "router"
 	RouterGroupName  = "router"
 

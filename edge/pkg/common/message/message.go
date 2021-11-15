@@ -22,6 +22,7 @@ const (
 	FuncGroupName     = "func"
 	UserGroupName     = "user"
 	DevmGroupName     = "dmgr"
+	CdmgGroupName     = "cdmgr"
 )
 
 //BuildMsg returns message object with router and content details

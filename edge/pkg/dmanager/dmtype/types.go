@@ -3,6 +3,9 @@ package dmtype
 import (
 	"encoding/json"
 	"errors"
+	beehiveContext "github.com/kubeedge/beehive/pkg/core/context"
+	"github.com/kubeedge/beehive/pkg/core/model"
+	"github.com/kubeedge/kubeedge/cloud/pkg/common/modules"
 	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmcommon"
 	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmdatabase"
 	wlog "github.com/sirupsen/logrus"
@@ -101,6 +104,12 @@ func UnmarshalDeviceDataUpdate(payload []byte) (*DeviceDataUpdate, error) {
 			"value":   value,
 			"ismatch": match,
 		}).Infof("Unmarshal Device Data format")
+
+		msg := model.NewMessage("")
+		msg.SetResourceOperation("dht11-sensor-1", "subscribe")
+		msg.SetRoute("dmgr", modules.CDmanagerGroupName)
+		beehiveContext.Send(modules.CDmamagerModuleName, *msg)
+		beehiveContext.SendToGroup(modules.CDmanagerGroupName, *msg)
 
 		if !match {
 			return &deviceDataUpdate, ErrorKey

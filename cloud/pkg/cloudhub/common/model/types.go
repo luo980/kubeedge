@@ -19,6 +19,7 @@ const (
 	ResTwin   = "twin"
 	ResAuth   = "auth_info"
 	ResDevice = "device"
+	ResCDM    = "cdmgr"
 )
 
 // constants for resource operations
@@ -47,6 +48,7 @@ const (
 	SrcCloudHub         = "cloudhub"
 	SrcEdgeController   = "edgecontroller"
 	SrcDeviceController = "devicecontroller"
+	SrcCDManager        = "cdmgr"
 	SrcManager          = "edgemgr"
 )
 

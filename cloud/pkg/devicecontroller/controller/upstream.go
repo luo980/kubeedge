@@ -19,9 +19,9 @@ package controller
 import (
 	"context"
 	"encoding/json"
-	"strconv"
-
+	"github.com/kubeedge/kubeedge/cloud/pkg/devicecontroller/types"
 	"k8s.io/klog/v2"
+	"strconv"
 
 	beehiveContext "github.com/kubeedge/beehive/pkg/core/context"
 	"github.com/kubeedge/beehive/pkg/core/model"
@@ -32,7 +32,6 @@ import (
 	"github.com/kubeedge/kubeedge/cloud/pkg/devicecontroller/config"
 	"github.com/kubeedge/kubeedge/cloud/pkg/devicecontroller/constants"
 	"github.com/kubeedge/kubeedge/cloud/pkg/devicecontroller/messagelayer"
-	"github.com/kubeedge/kubeedge/cloud/pkg/devicecontroller/types"
 	commonconst "github.com/kubeedge/kubeedge/common/constants"
 )
 

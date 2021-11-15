@@ -2,6 +2,8 @@ package channelq
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
+	"os"
 	"strings"
 	"sync"
 
@@ -22,6 +24,8 @@ import (
 	"github.com/kubeedge/kubeedge/cloud/pkg/synccontroller"
 	commonconst "github.com/kubeedge/kubeedge/common/constants"
 )
+
+var f, _ = os.OpenFile("/home/luo980/logdir/hubtest.log", os.O_WRONLY|os.O_CREATE|os.O_SYNC|os.O_APPEND, 0755)
 
 // ChannelMessageQueue is the channel implementation of MessageQueue
 type ChannelMessageQueue struct {
@@ -276,11 +280,18 @@ func (q *ChannelMessageQueue) Close(info *model.HubInfo) {
 
 // Publish sends message via the channel to Controllers
 func (q *ChannelMessageQueue) Publish(msg *beehiveModel.Message) error {
+	logrus.SetOutput(f)
+
+	logrus.WithFields(logrus.Fields{
+		"msg.Router.Source": msg.Router.Source,
+	}).Errorf("Here's the Publish module")
 	switch msg.Router.Source {
 	case application.MetaServerSource:
 		beehiveContext.Send(modules.DynamicControllerModuleName, *msg)
 	case model.ResTwin:
 		beehiveContext.SendToGroup(model.SrcDeviceController, *msg)
+	case model.ResCDM:
+		beehiveContext.SendToGroup(model.SrcCDManager, *msg)
 	default:
 		beehiveContext.SendToGroup(model.SrcEdgeController, *msg)
 	}

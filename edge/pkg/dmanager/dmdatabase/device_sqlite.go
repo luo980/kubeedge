@@ -30,7 +30,7 @@ type Device struct {
 	//TODO: a list of Metadatas
 
 	//Value    string `orm:"column(value);null;type(text)"`
-	//Optional bool   `orm:"column(optional);null;type(integer)"`
+	//Optional bool   `orm:"column(optional);null;type(integ er)"`
 	//AttrType string `orm:"column(attr_type);null;type(text)"`
 	//Metadata string `orm:"column(metadata);null;type(text)"`
 }
