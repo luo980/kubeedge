@@ -116,4 +116,7 @@ const (
 	ConflictCode = 409
 	// InternalErrorCode server internal error
 	InternalErrorCode = 500
+
+	// HubModule the name of hub module
+	HubModule = "websocket"
 )

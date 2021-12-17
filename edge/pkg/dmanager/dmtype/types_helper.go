@@ -19,6 +19,12 @@ type MembershipGetResult struct {
 	Devices []Device `json:"devices"`
 }
 
+//DeviceMsg the struct of device statte msg
+type DeviceMsg struct {
+	BaseMessage
+	Device Device `json:"device"`
+}
+
 //UnmarshalDeviceUpdate unmarshal device update
 func UnmarshalDeviceUpdate(payload []byte) (*DeviceUpdate, error) {
 	var get DeviceUpdate
@@ -91,6 +97,8 @@ func UnmarshalMembershipDetail(payload []byte) (*MembershipDetail, error) {
 	return &membershipDetail, nil
 }
 
+
+
 //UnmarshalTwinMsg Unmarshal TwinMsg
 //func UnmarshalTwinMsg(payload []byte) (*TwinMsg, error) {
 //	var twinmsg TwinMsg
@@ -108,3 +116,18 @@ func UnmarshalMembershipDetail(payload []byte) (*MembershipDetail, error) {
 //	json.Unmarshal(payload, &result)
 //	return result
 //}
+
+//BuildDeviceState build the msg
+func BuildDeviceState(baseMessage BaseMessage, device Device) ([]byte, error) {
+	result := DeviceMsg{
+		BaseMessage: baseMessage,
+		Device: Device{
+			Name:       device.Name,
+			State:      device.State,
+			LastOnline: device.LastOnline}}
+	payload, err := json.Marshal(result)
+	if err != nil {
+		return []byte(""), err
+	}
+	return payload, nil
+}

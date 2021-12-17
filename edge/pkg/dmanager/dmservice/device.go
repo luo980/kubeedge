@@ -98,6 +98,34 @@ func Updated(context *dmcontext.DMContext, deviceID string, payload []byte) erro
 		"err":    err,
 	}).Infof("unmarshal finished")
 	eventID := msg.EventID
+
+	device := CreateTestDevice()
+	newPayload, err := dmtype.BuildDeviceState(dmtype.BuildBaseMessage(), device)
+	wlog.Errorf("State is :" , newPayload)
+	msgResource := "device/" + "dht11-sensor-1" + dmcommon.DeviceETStateUpdateSuffix
+	err = context.Send("dht11-sensor-1",
+		dmcommon.SendToCloud,
+		dmcommon.CommModule,
+		context.BuildModelMessage("resource", "", msgResource, model.UpdateOperation, string(newPayload)))
+
+	if err != nil{
+		wlog.Errorf("Send Status ok ? err: ", err)
+	}
+
+	twin := CreateTestTwin()
+	tResource := "device/" + deviceID + "/twin/edge_updated"
+	msgX := dmtype.DeviceTwinResult{BaseMessage: dmtype.BuildBaseMessage(), Twin: twin}
+	wlog.Errorf("Update is :", msgX)
+	//DeviceTwinResult{BaseMessage: BuildBaseMessage(), Twin: twin}
+	err = context.Send("dht11-sensor-1",
+		dmcommon.SendToCloud,
+		dmcommon.CommModule,
+		context.BuildModelMessage("resource", "", tResource, model.UpdateOperation, msgX))
+
+	if err != nil{
+		wlog.Errorf("Send Update ok ? err: ", err)
+	}
+
 	dealDeviceDiffUpdate(context, deviceID, eventID, msg.Data)
 
 	return nil
@@ -221,4 +249,34 @@ func DealMsgMeta(context *dmcontext.DMContext, deviceID string, meta map[string]
 			devmeta.Value = metas.Value
 		}
 	}
+}
+
+//
+func CreateTestDevice() dmtype.Device{
+	return dmtype.Device{
+		ID:          "dht11-sensor-1",
+		Name:        "dht11-sensor-1",
+		Description: "Industrialized",
+		State:       "online",
+		LastOnline:  " time.Now().Format(\"2006-01-02 15:04:05\")",
+		Meta:        nil,
+		Data:        nil,
+	}
+}
+
+func CreateTestTwin() map[string]dmtype.DevData{
+	devData := make(map[string]dmtype.DevData)
+	devData["temperature"] = dmtype.DevData{
+		Value:     "37.1",
+		Twin:      "40.0",
+		Metadata:  "string",
+		Timestamp: time.Now().Format("2006-01-02 15:04:05"),
+	}
+	devData["humidity"] = dmtype.DevData{
+		Value:     "11.0",
+		Twin:      "10.5",
+		Metadata:  "string",
+		Timestamp: time.Now().Format("2006-01-02 15:04:05"),
+	}
+	return devData
 }

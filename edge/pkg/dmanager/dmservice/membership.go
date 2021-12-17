@@ -27,7 +27,9 @@ type MemWorker struct {
 	Group string
 }
 
+
 func (mw MemWorker) Start() {
+	logrus.Error("Enter memWorker.")
 	initMemActionCallBack()
 	for {
 		select {

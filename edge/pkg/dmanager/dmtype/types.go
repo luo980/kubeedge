@@ -3,9 +3,8 @@ package dmtype
 import (
 	"encoding/json"
 	"errors"
-	beehiveContext "github.com/kubeedge/beehive/pkg/core/context"
-	"github.com/kubeedge/beehive/pkg/core/model"
-	"github.com/kubeedge/kubeedge/cloud/pkg/common/modules"
+	"github.com/google/uuid"
+
 	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmcommon"
 	"github.com/kubeedge/kubeedge/edge/pkg/dmanager/dmdatabase"
 	wlog "github.com/sirupsen/logrus"
@@ -14,6 +13,7 @@ import (
 )
 
 var log = wlog.New()
+var session, _ = dmdatabase.IotDBSessionInit()
 
 //BaseMessage the base struct of event message
 type BaseMessage struct {
@@ -45,6 +45,11 @@ type DevData struct {
 	Twin      string `json:"twin,omitempty"`
 	Metadata  string `json:"metadata,omitempty"`
 	Timestamp string `json:"timestamp,omitempty"`
+}
+
+type DeviceTwinResult struct {
+	BaseMessage
+	Twin map[string]DevData `json:"twin"`
 }
 
 //Parameter container para
@@ -105,11 +110,20 @@ func UnmarshalDeviceDataUpdate(payload []byte) (*DeviceDataUpdate, error) {
 			"ismatch": match,
 		}).Infof("Unmarshal Device Data format")
 
-		msg := model.NewMessage("")
-		msg.SetResourceOperation("dht11-sensor-1", "subscribe")
-		msg.SetRoute("dmgr", modules.CDmanagerGroupName)
-		beehiveContext.Send(modules.CDmamagerModuleName, *msg)
-		beehiveContext.SendToGroup(modules.CDmanagerGroupName, *msg)
+		//msg := model.NewMessage("")
+		//msg.SetResourceOperation("dht11-sensor-1", "subscribe")
+		//msg.SetRoute("dmgr", modules.CDmanagerGroupName)
+		//beehiveContext.Send(modules.CDmamagerModuleName, *msg)
+		//beehiveContext.SendToGroup(modules.CDmanagerGroupName, *msg)
+
+
+		newRecord := dmdatabase.CreateOneRecord("root.ln.dht11-sensor-1", key, "string", value.Value)
+		err = dmdatabase.InsertOneRecord(*session, newRecord)
+		log.WithFields(wlog.Fields{
+			"Where" : "types.go",
+			"Status": err,
+			"What"	: "InsertOneRecord",
+		}).Infof("IoTDB operation")
 
 		if !match {
 			return &deviceDataUpdate, ErrorKey
@@ -183,6 +197,16 @@ type TwinVersion struct {
 	CloudVersion int64 `json:"cloud"`
 	EdgeVersion  int64 `json:"edge"`
 }
+
+//BuildBaseMessage build base msg
+func BuildBaseMessage() BaseMessage {
+	now := time.Now().UnixNano() / 1e6
+	return BaseMessage{
+		EventID:   uuid.New().String(),
+		Timestamp: now}
+}
+
+
 
 var ErrorUnmarshal = errors.New("Unmarshal update request body failed, please check the request")
 var ErrorUpdate = errors.New("Update twin error, key:twin does not exist")

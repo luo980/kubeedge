@@ -5,15 +5,16 @@ go 1.16
 require (
 	github.com/256dpi/gomqtt v0.10.4
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
+	github.com/apache/iotdb-client-go v0.12.0
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2 // indirect
 	github.com/astaxie/beego v1.12.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cheekybits/genny v1.0.0 // indirect
 	github.com/container-storage-interface/spec v1.3.0
-	github.com/coreos/go-systemd v0.0.0-20190620071333-e64a0ec8b42a // indirect
 	github.com/docker/docker v20.10.2+incompatible
 	github.com/eclipse/paho.mqtt.golang v1.2.0
 	github.com/emicklei/go-restful v2.9.6+incompatible
+	github.com/gin-gonic/gin v1.7.7
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/golang/mock v1.4.4
@@ -27,8 +28,7 @@ require (
 	github.com/kubeedge/beehive v0.0.0
 	github.com/kubeedge/viaduct v0.0.0
 	github.com/kubernetes-csi/csi-lib-utils v0.6.1
-	github.com/lib/pq v1.2.0 // indirect
-	github.com/mattn/go-sqlite3 v1.11.0
+	github.com/mattn/go-sqlite3 v1.14.8
 	github.com/mitchellh/go-ps v0.0.0-20190716172923-621e5597135b
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.8.1
@@ -39,8 +39,8 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.6.1
-	golang.org/x/net v0.0.0-20210224082022-3d97a244fca7
+	github.com/stretchr/testify v1.7.0
+	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
 	google.golang.org/grpc v1.27.1
 	k8s.io/api v0.21.4
 	k8s.io/apiextensions-apiserver v0.21.4
@@ -64,6 +64,7 @@ require (
 	sigs.k8s.io/apiserver-network-proxy v0.0.20
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.22
 	sigs.k8s.io/yaml v1.2.0
+	xorm.io/xorm v1.2.5
 )
 
 replace (

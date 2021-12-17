@@ -84,6 +84,7 @@ func (dm *DManager) Start() {
 			Meta:        nil,
 			Data:        nil,
 		})
+		logrus.Error("DeviceList now: ", dm.DMContexts.DeviceList)
 	}
 
 	if err != nil {

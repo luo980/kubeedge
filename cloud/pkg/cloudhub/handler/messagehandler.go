@@ -124,6 +124,7 @@ func (mh *MessageHandle) HandleServer(container *mux.MessageContainer, writer mu
 	logrus.SetOutput(f)
 
 	logrus.WithFields(logrus.Fields{
+		//"context":		 beehiveContext.GlobalContext{},
 		"msg":           container.Message,
 		"\nSource":      container.Message.Router.Source,
 		"\nResource":    container.Message.Router.Resource,

@@ -34,7 +34,7 @@ type DMContext struct {
 	State        string
 }
 
-//InitDMContext init dmcontext
+//InitDMContext init context
 func InitDMContext() (*DMContext, error) {
 	return &DMContext{
 		GroupID:       "",
@@ -147,7 +147,7 @@ func (dmc *DMContext) HeartBeat(dmmName string, content interface{}) error {
 	return nil
 }
 
-//Send send result
+//Send  result
 func (dmc *DMContext) Send(identity string, action string, module string, msg *model.Message) error {
 	dmMsg := &dmtype.DMMessage{
 		Action:   action,
@@ -160,7 +160,17 @@ func (dmc *DMContext) Send(identity string, action string, module string, msg *m
 //BuildModelMessage build mode messages
 func (dmc *DMContext) BuildModelMessage(group string, parentID string, resource string, operation string, content interface{}) *model.Message {
 	msg := model.NewMessage(parentID)
-	msg.BuildRouter(modules.TwinGroup, group, resource, operation)
+	msg.BuildRouter(modules.DMgrGroup, group, resource, operation)
 	msg.Content = content
 	return msg
 }
+
+////Send send result
+//func (dmc *DMContext) Send(identity string, action string, module string, msg *model.Message) error {
+//	dtMsg := &dmtype.DMMessage{
+//		Action:   action,
+//		Identity: identity,
+//		Type:     module,
+//		Msg:      msg}
+//	return dmc.CommTo(module, dtMsg)
+//}
